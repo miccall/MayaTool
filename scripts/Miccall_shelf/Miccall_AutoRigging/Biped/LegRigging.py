@@ -10,17 +10,47 @@ from Miccall_shelf.Miccall_AutoRigging.Utility.RiggingTool import RiggingTool as
 
 
 class LegRigging:
-    def __init__(self):
-        self.ResultJoints = ["leftThigh_result_JNT", "leftShin_result_JNT", "leftFoot_result_JNT",
-                             "leftBall_result_JNT", "leftToe_result_JNT"]
-        self.FKJoints = ["leftThigh_FK_JNT", "leftShin_FK_JNT", "leftFoot_FK_JNT", "leftBall_FK_JNT", "leftToe_FK_JNT"]
-        self.IKJoints = ["leftThigh_IK_JNT", "leftShin_IK_JNT", "leftFoot_IK_JNT", "leftBall_IK_JNT", "leftToe_IK_JNT"]
-        self.IKControl = "left_IK_Control"
-        self.LegControl = "left_Leg_Control"
+    def __init__(self, ResJNT=None):
+
+        if ResJNT is None:
+            self.ResultJoints = ["leftThigh_result_JNT", "leftShin_result_JNT", "leftFoot_result_JNT",
+                                 "leftBall_result_JNT", "leftToe_result_JNT"]
+        else:
+            self.ResultJoints = ResJNT
+
+        self.FKJoints = self.CreatChain("FK", False)
+        self.IKJoints = self.CreatChain("IK", False)
+        self.IKControl = self.CreateIKControl()
+        self.LegControl = self.CreateLegControl()
         self.isNoFilpKneeEnable = False
         self.isPoleVectorKneeEnable = True
         self.SnappableKneefoPoleVectorKneeEnable = True
         self.CalulatePos()
+
+    def CreateIKControl(self):
+        IKControlName = "left_IK_Control"
+        FKIKSwitch = "FK_IK_Blend"
+        curveMaker = cmds.circle(nr=(0, 1, 0))
+        curve = curveMaker[0]
+        cmds.rename(curve, IKControlName)
+
+        # Add FK_IK_Blend Attr
+        cmds.addAttr(IKControlName, ln=FKIKSwitch, niceName="IK / FK Blend",
+                     attributeType="float", defaultValue=1.0, minValue=0.0, maxValue=1)
+        cmds.setAttr("%s.%s" % (IKControlName, FKIKSwitch), keyable=True)
+
+        return IKControlName
+        pass
+
+    def CreateLegControl(self):
+        LegControlName = "left_Leg_Control"
+
+        curveMaker = cmds.circle(nr=(0, 1, 0))
+        curve = curveMaker[0]
+        cmds.rename(curve, LegControlName)
+
+        return LegControlName
+        pass
 
     def CalulatePos(self):
         self.StartPos = cmds.xform(self.IKJoints[0], q=1, ws=1, rp=1)
@@ -34,8 +64,8 @@ class LegRigging:
         cmds.parent("%s_HDL" % start, self.IKControl)
         return "%s_HDL" % start
 
-    def CreatChain(self, Attr):
-        NewChainList = cmds.duplicate(self.IKJoints[0])
+    def CreatChain(self, Attr, OnlyLeg=False):
+        NewChainList = cmds.duplicate(self.ResultJoints[0])
         realname = ""
         realnamelist = []
         for name in NewChainList:
@@ -46,17 +76,22 @@ class LegRigging:
         for i in range(0, len(realnamelist)):
             JointName = NewChainList[i]
             JointNameSplits = JointName.split("_")
-            newChainName = JointNameSplits[0] + "_%s_" % Attr + JointNameSplits[1] + "_JNT"
+            newChainName = JointNameSplits[0] + "_" + JointNameSplits[1] + "_%s" % Attr + "_JNT"
             cmds.rename(realnamelist[i], newChainName)
             realnamelist[i] = newChainName
-        cmds.delete("leftToe_%s_IK_JNT" % Attr)
-        cmds.delete("leftBall_%s_IK_JNT" % Attr)
+        if OnlyLeg:
+            cmds.delete("leftToe_%s_IK_JNT" % Attr)
+            cmds.delete("leftBall_%s_IK_JNT" % Attr)
+            realnamelist.reverse()
+            realnamelist.pop()
+            realnamelist.pop()
         realnamelist.reverse()
-        realnamelist.pop()
-        realnamelist.pop()
         return realnamelist
 
     def MainProcess(self):
+        self.IKFKSwitch()
+        self.LinkIKFK()
+        """
         # distance
         self.LegDistance = cmds.distanceDimension(sp=self.StartPos, ep=self.EndPos)
         self.LegDistanceObjs = cmds.listConnections(self.LegDistance, destination=False)
@@ -107,6 +142,8 @@ class LegRigging:
 
             self.LinkAttr(self.NoFilpChain, self.PVChain, "rotate", self.LegControl, "autoManualKneeBlend")
             self.LinkAttr(self.NoFilpChain, self.PVChain, "translate", self.LegControl, "autoManualKneeBlend")
+        
+        """
 
     def LinkAttr(self, Chain1, chain2, Attr, Control, Control_Attr):
         for i in range(0, len(Chain1)):
@@ -196,3 +233,26 @@ class LegRigging:
             cmds.connectAttr('%s.%s' % ("distance", self.Thigh_To_Pole), '%s.translateX' % BlendNode, f=True)
             cmds.connectAttr('%s.%s' % ("distance", self.Pole_To_Foot), '%s.translateX' % BlendNode, f=True)
         pass
+
+    def IKFKSwitch(self):
+        for i in range(len(self.ResultJoints)):
+            self.BlendColorNode(i, "rotate")
+            self.BlendColorNode(i, "translate")
+        pass
+
+    def BlendColorNode(self, i, ConAttr):
+        blendColorsNode = cmds.shadingNode('blendColors', asShader=True)
+        cmds.connectAttr('%s.%s' % (self.FKJoints[i], ConAttr), '%s.color1' % blendColorsNode, f=True)
+        cmds.connectAttr('%s.%s' % (self.IKJoints[i], ConAttr), '%s.color2' % blendColorsNode, f=True)
+        cmds.connectAttr('%s.output' % blendColorsNode, '%s.%s' % (self.ResultJoints[i], ConAttr), f=True)
+        cmds.select(blendColorsNode, r=True)
+        cmds.rename('Blend_%s_%s_%s' % (self.FKJoints[i], self.IKJoints[i], ConAttr))
+
+    def LinkAttrOnce(self, i, ConAttr):
+        BlendNode = 'Blend_%s_%s_%s' % (self.FKJoints[i], self.IKJoints[i], ConAttr)
+        cmds.connectAttr('%s.%s' % (self.IKControl, "FK_IK_Blend"), '%s.blender' % BlendNode, f=True)
+
+    def LinkIKFK(self):
+        for i in range(len(self.ResultJoints)):
+            self.LinkAttrOnce(i, "rotate")
+            self.LinkAttrOnce(i, "translate")

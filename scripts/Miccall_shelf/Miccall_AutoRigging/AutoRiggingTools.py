@@ -11,9 +11,11 @@ except ImportError:
     pm.error('Maya Version Lowed')
 
 from .Biped import Create
-
 importlib.reload(Create)
-from .Biped.LegRigging import LegRigging
+
+from .Biped import LegRigging
+importlib.reload(LegRigging)
+
 
 dialog = None
 
@@ -48,6 +50,8 @@ class AutoRigging_GUI(MayaQWidgetDockableMixin, qw.QDialog):
         pass
 
     def Test_Func(self):
+        self.Rigger = LegRigging.LegRigging(ResJNT=self.creator.LegChainNames)
+        self.Rigger.MainProcess()
         pass
 
 

@@ -6,7 +6,7 @@ import maya.mel as mel
 class CreateBipedJoints:
     def __init__(self):
         self.TorsoChainNames = ['Hip_JNT']
-        self.LegChainNames = ['Thing_L_JNT', 'Knee_L_JNT', 'Ankle_L_JNT', 'Foot_L_JNT', 'Toe_L_JNT']
+        self.LegChainNames = ['Thigh_L_JNT', 'Shin_L_JNT', 'Foot_L_JNT', 'Ball_L_JNT', 'Toe_L_JNT']
         self.SplineCount = 3
         self.splineLength = 30
         self.HipSize = 15
@@ -15,34 +15,37 @@ class CreateBipedJoints:
         self.ThighLenght = self.LegLenght * 3 / 8
         self.CalfLenght = self.LegLenght * 5 / 8
         self.FootHeight = 8
-        self.CreatTorso()
+        self.Hip = None
+
+        # self.CreatTorso()
         self.CreatLeg()
         pass
 
     def CreatLeg(self):
         # print("create Leg ")
-        self.Thing = cmds.joint(p=(self.HipSize, self.LegLenght, 0))
-        self.Knee = cmds.joint(p=(self.HipSize, self.CalfLenght, 5))
-        cmds.joint(self.Thing, e=True, zso=True, oj='xyz', sao='yup')
-        self.Ankle = cmds.joint(p=(self.HipSize, self.FootHeight, 0))
-        cmds.joint(self.Knee, e=True, zso=True, oj='xyz', sao='yup')
-        self.Foot = cmds.joint(p=(self.HipSize, 0, 15))
-        cmds.joint(self.Ankle, e=True, zso=True, oj='xyz', sao='yup')
+        self.Thigh = cmds.joint(p=(self.HipSize, self.LegLenght, 0))
+        self.Shin = cmds.joint(p=(self.HipSize, self.CalfLenght, 5))
+        cmds.joint(self.Thigh, e=True, zso=True, oj='xyz', sao='xup', ch=True)
+        self.Foot = cmds.joint(p=(self.HipSize, self.FootHeight, 0))
+        cmds.joint(self.Shin, e=True, zso=True, oj='xyz', sao='xup', ch=True)
+        self.Ball = cmds.joint(p=(self.HipSize, 0, 15))
+        cmds.joint(self.Foot, e=True, zso=True, oj='xyz', sao='xup', ch=True)
         self.Toe = cmds.joint(p=(self.HipSize, 0, 23))
-        cmds.joint(self.Foot, e=True, zso=True, oj='xyz', sao='yup')
+        cmds.joint(self.Ball, e=True, zso=True, oj='xyz', sao='xup', ch=True)
         # Rename
-        cmds.rename(self.Thing, self.LegChainNames[0])
-        self.Thing = self.LegChainNames[0]
-        cmds.rename(self.Knee, self.LegChainNames[1])
-        self.Knee = self.LegChainNames[1]
-        cmds.rename(self.Ankle, self.LegChainNames[2])
-        self.Ankle = self.LegChainNames[2]
-        cmds.rename(self.Foot, self.LegChainNames[3])
-        self.Foot = self.LegChainNames[3]
+        cmds.rename(self.Thigh, self.LegChainNames[0])
+        self.Thigh = self.LegChainNames[0]
+        cmds.rename(self.Shin, self.LegChainNames[1])
+        self.Shin = self.LegChainNames[1]
+        cmds.rename(self.Foot, self.LegChainNames[2])
+        self.Foot = self.LegChainNames[2]
+        cmds.rename(self.Ball, self.LegChainNames[3])
+        self.Ball = self.LegChainNames[3]
         cmds.rename(self.Toe, self.LegChainNames[4])
         self.Toe = self.LegChainNames[4]
         # hirechy
-        cmds.parent(self.Thing, self.Hip)
+        if self.Hip is not None:
+            cmds.parent(self.Thigh, self.Hip)
         # Clear
         cmds.select(clear=True)
         pass
