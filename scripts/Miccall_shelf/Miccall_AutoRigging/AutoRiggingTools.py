@@ -39,7 +39,7 @@ class AutoRigging_GUI(MayaQWidgetDockableMixin, qw.QDialog):
         self.DisplayUI()
 
     def DisplayUI(self):
-        self.resize(250, 200)
+        self.resize(340, 50)
         self.layout = qw.QVBoxLayout()
         self.setLayout(self.layout)
         self.layout.setContentsMargins(0, 0, 0, 0)

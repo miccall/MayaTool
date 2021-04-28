@@ -50,13 +50,13 @@ class LegRigging:
         self.CalulatePos()
 
     def CreateIKControl(self):
-        IKControlName = "left_IK_Control"
+        IKControlName = "Leg_L_IK_Ctr"
         CT.IKControl(IKControlName, self.IKJoints[2], self.IKJoints[4])
         return IKControlName
         pass
 
     def CreateLegControl(self):
-        LegControlName = "left_Leg_Control"
+        LegControlName = "Leg_L_Main_Ctr"
         FKIKSwitch = "FK_IK_Blend"
         curveMaker = cmds.circle(nr=(0, 1, 0))
         curve = curveMaker[0]
@@ -109,10 +109,11 @@ class LegRigging:
     def MainProcess(self):
         self.IKFKSwitch()
         self.LinkIKFK()
-
+        # Create Leg FK Main
+        self.CreateFKControl()
         # Create Leg IK Main
-        self.LegIKHandle = self.CreateIK(self.IKJoints[0], self.IKJoints[2])
-        cmds.parent(self.LegIKHandle, self.IKControl)
+        # self.LegIKHandle = self.CreateIK(self.IKJoints[0], self.IKJoints[2])
+        # cmds.parent(self.LegIKHandle, self.IKControl)
 
         """
         # distance
@@ -279,3 +280,37 @@ class LegRigging:
         for i in range(len(self.ResultJoints)):
             self.LinkAttrOnce(i, "rotate")
             self.LinkAttrOnce(i, "translate")
+
+    def CreateFKControl(self):
+        # 为 0 1 2 创建 Curve
+        CT.LegFKControl("Thigh_L_FK_Ctr")
+        pos = cmds.xform(self.FKJoints[0], q=1, ws=1, rp=1)
+        cmds.setAttr("Thigh_L_FK_Ctr.translateX", pos[0])
+        cmds.setAttr("Thigh_L_FK_Ctr.translateY", pos[1])
+        cmds.setAttr("Thigh_L_FK_Ctr.translateZ", pos[2])
+        cmds.setAttr("Thigh_L_FK_Ctr.scaleX", 15)
+        cmds.setAttr("Thigh_L_FK_Ctr.scaleY", 15)
+        cmds.setAttr("Thigh_L_FK_Ctr.scaleZ", 15)
+        cmds.makeIdentity("%s" % "Thigh_L_FK_Ctr", apply=True, t=1, r=1, s=1, n=0)
+
+        CT.LegFKControl("Shin_L_FK_Ctr")
+        pos = cmds.xform(self.FKJoints[1], q=1, ws=1, rp=1)
+        cmds.setAttr("Shin_L_FK_Ctr.translateX", pos[0])
+        cmds.setAttr("Shin_L_FK_Ctr.translateY", pos[1])
+        cmds.setAttr("Shin_L_FK_Ctr.translateZ", pos[2])
+        cmds.setAttr("Shin_L_FK_Ctr.scaleX", 10)
+        cmds.setAttr("Shin_L_FK_Ctr.scaleY", 10)
+        cmds.setAttr("Shin_L_FK_Ctr.scaleZ", 10)
+        cmds.makeIdentity("%s" % "Shin_L_FK_Ctr", apply=True, t=1, r=1, s=1, n=0)
+
+        CT.LegFKControl("Foot_L_FK_Ctr")
+        pos = cmds.xform(self.FKJoints[2], q=1, ws=1, rp=1)
+        cmds.setAttr("Foot_L_FK_Ctr.translateX", pos[0])
+        cmds.setAttr("Foot_L_FK_Ctr.translateY", pos[1])
+        cmds.setAttr("Foot_L_FK_Ctr.translateZ", pos[2])
+        cmds.setAttr("Foot_L_FK_Ctr.scaleX", 7)
+        cmds.setAttr("Foot_L_FK_Ctr.scaleY", 7)
+        cmds.setAttr("Foot_L_FK_Ctr.scaleZ", 7)
+        cmds.makeIdentity("%s" % "Foot_L_FK_Ctr", apply=True, t=1, r=1, s=1, n=0)
+
+        pass

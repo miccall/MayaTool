@@ -47,3 +47,13 @@ class ControllerTool:
         cmds.move(footpos[0], footpos[1], footpos[2], cur[0] + ".scalePivot", cur[0] + ".rotatePivot", absolute=True)
         cmds.rename(cur[0], name)
         pass
+
+    @staticmethod
+    def LegFKControl(name):
+        curve = mel.eval(
+            "curve -bezier -d 3 -p 0 0.129616 -1 -p 0 0.129616 -1 -p -1.00471 0.129616 -0.920818 -p -1 0.129616 0 -p -0.995291 0.129616 0.920818 -p -2.98023e-08 0.129616 1 -p -2.98023e-08 0.129616 1 -p -2.98023e-08 0.129616 1 -p -2.98023e-08 -0.129616 1 -p -2.98023e-08 -0.129616 1 -p -2.98023e-08 -0.129616 1 -p -0.99465 -0.129616 0.904438 -p -1 -0.129616 0 -p -1.005351 -0.129616 -0.904438 -p 0 -0.129616 -1 -p 0 -0.129616 -1 -p 0 0.129616 -1 -p 0 0.129616 -1 -p 0 0.129616 -1 -k 0 -k 0 -k 0 -k 1 -k 1 -k 1 -k 2 -k 2 -k 2 -k 3 -k 3 -k 3 -k 4 -k 4 -k 4 -k 5 -k 5 -k 5 -k 6 -k 6 -k 6 ;")
+        cmds.bezierCurveToNurbs()
+        cmds.rename(curve,name)
+        # todo: fix rotate
+        cmds.setAttr("%s.rotateY" % name, 90)
+        cmds.makeIdentity("%s" % name, apply=True, t=1, r=1, s=1, n=0)
