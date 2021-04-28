@@ -1,20 +1,34 @@
+# -*- coding: utf-8 -*-
+
+
 import maya.cmds as cmds
 import pymel.core as pm
 import maya.mel as mel
 import sys
-import importlib
 
-sys.path.append("..")
+mayaveersion = cmds.about(version=True)
 
-from Miccall_shelf.Miccall_AutoRigging.Utility import ControllerTool
+if mayaveersion == "2022":
+    import importlib
 
-importlib.reload(ControllerTool)
-from Miccall_shelf.Miccall_AutoRigging.Utility import RiggingTool
+    sys.path.append("..")
+    from Miccall_shelf.Miccall_AutoRigging.Utility import ControllerTool
 
-importlib.reload(RiggingTool)
+    importlib.reload(ControllerTool)
+    from Miccall_shelf.Miccall_AutoRigging.Utility import RiggingTool
 
-from Miccall_shelf.Miccall_AutoRigging.Utility.ControllerTool import ControllerTool as CT
-from Miccall_shelf.Miccall_AutoRigging.Utility.RiggingTool import RiggingTool as RT
+    importlib.reload(RiggingTool)
+    from Miccall_shelf.Miccall_AutoRigging.Utility.ControllerTool import ControllerTool as CT
+    from Miccall_shelf.Miccall_AutoRigging.Utility.RiggingTool import RiggingTool as RT
+else:
+    from Miccall_shelf.Miccall_AutoRigging.Utility import ControllerTool
+
+    reload(ControllerTool)
+    from Miccall_shelf.Miccall_AutoRigging.Utility import RiggingTool
+
+    reload(RiggingTool)
+    from Miccall_shelf.Miccall_AutoRigging.Utility.ControllerTool import ControllerTool as CT
+    from Miccall_shelf.Miccall_AutoRigging.Utility.RiggingTool import RiggingTool as RT
 
 
 class LegRigging:

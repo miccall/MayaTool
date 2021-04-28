@@ -1,6 +1,9 @@
-import pymel.core as pm
-import importlib
+# -*- coding: utf-8 -*-
 
+import maya.cmds as cmds
+import pymel.core as pm
+
+mayaveersion = cmds.about(version=True)
 try:
     import PySide2.QtCore as qc
     import PySide2.QtGui as qg
@@ -10,19 +13,27 @@ try:
 except ImportError:
     pm.error('Maya Version Lowed')
 
-from .Biped import Create
-importlib.reload(Create)
-
-from .Biped import LegRigging
-importlib.reload(LegRigging)
-
+if mayaveersion == "2022":
+    import importlib
+    from .Biped import Create
+    importlib.reload(Create)
+    from .Biped import LegRigging
+    importlib.reload(LegRigging)
+else:
+    from Biped import Create
+    reload(Create)
+    from Biped import LegRigging
+    reload(LegRigging)
 
 dialog = None
 
 
 class AutoRigging_GUI(MayaQWidgetDockableMixin, qw.QDialog):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        if mayaveersion == 2022:
+            super().__init__(*args, **kwargs)
+        else:
+            super(AutoRigging_GUI, self).__init__(*args, **kwargs)
         self.setSizePolicy(qw.QSizePolicy.Preferred, qw.QSizePolicy.Preferred)
         self.setWindowTitle('miccall Auto Rigging')
         self.DisplayUI()
