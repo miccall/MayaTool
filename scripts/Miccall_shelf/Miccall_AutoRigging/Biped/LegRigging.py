@@ -37,23 +37,21 @@ class LegRigging:
 
     def CreateIKControl(self):
         IKControlName = "left_IK_Control"
-        FKIKSwitch = "FK_IK_Blend"
         CT.IKControl(IKControlName, self.IKJoints[2], self.IKJoints[4])
-
-        # Add FK_IK_Blend Attr
-        cmds.addAttr(IKControlName, ln=FKIKSwitch, niceName="IK / FK Blend",
-                     attributeType="float", defaultValue=1.0, minValue=0.0, maxValue=1)
-        cmds.setAttr("%s.%s" % (IKControlName, FKIKSwitch), keyable=True)
-
         return IKControlName
         pass
 
     def CreateLegControl(self):
         LegControlName = "left_Leg_Control"
-
+        FKIKSwitch = "FK_IK_Blend"
         curveMaker = cmds.circle(nr=(0, 1, 0))
         curve = curveMaker[0]
         cmds.rename(curve, LegControlName)
+
+        # Add FK_IK_Blend Attr
+        cmds.addAttr(LegControlName, ln=FKIKSwitch, niceName="IK / FK Blend",
+                     attributeType="float", defaultValue=1.0, minValue=0.0, maxValue=1)
+        cmds.setAttr("%s.%s" % (LegControlName, FKIKSwitch), keyable=True)
 
         return LegControlName
         pass
@@ -67,7 +65,7 @@ class LegRigging:
         ikHandleName = cmds.ikHandle(sj=start, ee=end, sol="ikRPsolver")
         cmds.rename(ikHandleName[0], "%s_HDL" % start)
         cmds.rename(ikHandleName[1], "%s_Eff" % start)
-        cmds.parent("%s_HDL" % start, self.IKControl)
+        # cmds.parent("%s_HDL" % start, self.IKControl)
         return "%s_HDL" % start
 
     def CreatChain(self, Attr, OnlyLeg=False):
@@ -97,6 +95,11 @@ class LegRigging:
     def MainProcess(self):
         self.IKFKSwitch()
         self.LinkIKFK()
+
+        # Create Leg IK Main
+        self.LegIKHandle = self.CreateIK(self.IKJoints[0], self.IKJoints[2])
+        cmds.parent(self.LegIKHandle, self.IKControl)
+
         """
         # distance
         self.LegDistance = cmds.distanceDimension(sp=self.StartPos, ep=self.EndPos)
@@ -256,7 +259,7 @@ class LegRigging:
 
     def LinkAttrOnce(self, i, ConAttr):
         BlendNode = 'Blend_%s_%s_%s' % (self.FKJoints[i], self.IKJoints[i], ConAttr)
-        cmds.connectAttr('%s.%s' % (self.IKControl, "FK_IK_Blend"), '%s.blender' % BlendNode, f=True)
+        cmds.connectAttr('%s.%s' % (self.LegControl, "FK_IK_Blend"), '%s.blender' % BlendNode, f=True)
 
     def LinkIKFK(self):
         for i in range(len(self.ResultJoints)):
