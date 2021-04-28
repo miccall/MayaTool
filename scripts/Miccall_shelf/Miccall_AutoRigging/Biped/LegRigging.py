@@ -282,35 +282,56 @@ class LegRigging:
             self.LinkAttrOnce(i, "translate")
 
     def CreateFKControl(self):
+        self.FKControlChains = ["Thigh_L_FK_Ctr", "Shin_L_FK_Ctr", "Foot_L_FK_Ctr", "Ball_L_FK_Ctr"]
+        self.FKControlChainScale = [11, 9, 7, 5]
         # 为 0 1 2 创建 Curve
-        CT.LegFKControl("Thigh_L_FK_Ctr")
-        pos = cmds.xform(self.FKJoints[0], q=1, ws=1, rp=1)
-        cmds.setAttr("Thigh_L_FK_Ctr.translateX", pos[0])
-        cmds.setAttr("Thigh_L_FK_Ctr.translateY", pos[1])
-        cmds.setAttr("Thigh_L_FK_Ctr.translateZ", pos[2])
-        cmds.setAttr("Thigh_L_FK_Ctr.scaleX", 15)
-        cmds.setAttr("Thigh_L_FK_Ctr.scaleY", 15)
-        cmds.setAttr("Thigh_L_FK_Ctr.scaleZ", 15)
-        cmds.makeIdentity("%s" % "Thigh_L_FK_Ctr", apply=True, t=1, r=1, s=1, n=0)
+        for i in range(0, len(self.FKControlChains)):
+            CT.LegFKControl(self.FKControlChains[i], self.FKControlChainScale[i])
+            cmds.select(self.FKControlChains[i] + "Shape")
+            cmds.select(self.FKJoints[i], add=True)
+            mel.eval("parent -r -s")
+            cmds.delete(self.FKControlChains[i])
+            cmds.rename(self.FKJoints[i], self.FKControlChains[i])
 
-        CT.LegFKControl("Shin_L_FK_Ctr")
-        pos = cmds.xform(self.FKJoints[1], q=1, ws=1, rp=1)
-        cmds.setAttr("Shin_L_FK_Ctr.translateX", pos[0])
-        cmds.setAttr("Shin_L_FK_Ctr.translateY", pos[1])
-        cmds.setAttr("Shin_L_FK_Ctr.translateZ", pos[2])
-        cmds.setAttr("Shin_L_FK_Ctr.scaleX", 10)
-        cmds.setAttr("Shin_L_FK_Ctr.scaleY", 10)
-        cmds.setAttr("Shin_L_FK_Ctr.scaleZ", 10)
-        cmds.makeIdentity("%s" % "Shin_L_FK_Ctr", apply=True, t=1, r=1, s=1, n=0)
+        # Add for Stretch
+        cmds.addAttr(self.FKControlChains[0], ln="Lenght", attributeType="double", defaultValue=1.0, minValue=0.0,
+                     maxValue=10.0)
+        cmds.setAttr("%s.Lenght" % self.FKControlChains[0], keyable=True)
+        cmds.addAttr(self.FKControlChains[1], ln="Lenght", attributeType="double", defaultValue=1.0, minValue=0.0,
+                     maxValue=10.0)
+        cmds.setAttr("%s.Lenght" % self.FKControlChains[1], keyable=True)
 
-        CT.LegFKControl("Foot_L_FK_Ctr")
-        pos = cmds.xform(self.FKJoints[2], q=1, ws=1, rp=1)
-        cmds.setAttr("Foot_L_FK_Ctr.translateX", pos[0])
-        cmds.setAttr("Foot_L_FK_Ctr.translateY", pos[1])
-        cmds.setAttr("Foot_L_FK_Ctr.translateZ", pos[2])
-        cmds.setAttr("Foot_L_FK_Ctr.scaleX", 7)
-        cmds.setAttr("Foot_L_FK_Ctr.scaleY", 7)
-        cmds.setAttr("Foot_L_FK_Ctr.scaleZ", 7)
-        cmds.makeIdentity("%s" % "Foot_L_FK_Ctr", apply=True, t=1, r=1, s=1, n=0)
+        # setDrivenKeyframe
+        cmds.setAttr('%s.Lenght' % self.FKControlChains[0], 1)
+        cmds.setDrivenKeyframe('%s.translateX' % self.FKControlChains[1],
+                               cd='%s.%s' % (self.FKControlChains[0], "Lenght"),
+                               outTangentType="linear", inTangentType="linear")
+        cmds.setAttr('%s.Lenght' % self.FKControlChains[0], 0)
+        cmds.setAttr('%s.translateX' % self.FKControlChains[1], 0)
+        cmds.setDrivenKeyframe('%s.translateX' % self.FKControlChains[1],
+                               cd='%s.%s' % (self.FKControlChains[0], "Lenght"),
+                               outTangentType="linear", inTangentType="linear")
+        cmds.setAttr('%s.Lenght' % self.FKControlChains[0], 1)
+        cmds.setAttr('%s.Lenght' % self.FKControlChains[1], 1)
+        cmds.setDrivenKeyframe('%s.translateX' % self.FKControlChains[2],
+                               cd='%s.%s' % (self.FKControlChains[1], "Lenght"),
+                               outTangentType="linear", inTangentType="linear")
+        cmds.setAttr('%s.Lenght' % self.FKControlChains[1], 0)
+        cmds.setAttr('%s.translateX' % self.FKControlChains[2], 0)
+        cmds.setDrivenKeyframe('%s.translateX' % self.FKControlChains[2],
+                               cd='%s.%s' % (self.FKControlChains[1], "Lenght"),
+                               outTangentType="linear", inTangentType="linear")
+        cmds.setAttr('%s.Lenght' % self.FKControlChains[1], 1)
 
+        cmds.setInfinity('%s.translateX' % self.FKControlChains[1], postInfinite='cycleRelative')
+        cmds.setInfinity('%s.translateX' % self.FKControlChains[2], postInfinite='cycleRelative')
+
+        for i in range(0, len(self.FKControlChains)):
+            # lock & hide
+            cmds.setAttr("%s.translateX" % self.FKControlChains[i], lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.translateY" % self.FKControlChains[i], lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.translateZ" % self.FKControlChains[i], lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.scaleX" % self.FKControlChains[i], lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.scaleY" % self.FKControlChains[i], lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.scaleZ" % self.FKControlChains[i], lock=True, keyable=False, channelBox=False)
         pass

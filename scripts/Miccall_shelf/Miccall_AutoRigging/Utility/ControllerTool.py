@@ -49,11 +49,15 @@ class ControllerTool:
         pass
 
     @staticmethod
-    def LegFKControl(name):
+    def LegFKControl(name, sc=5):
         curve = mel.eval(
             "curve -bezier -d 3 -p 0 0.129616 -1 -p 0 0.129616 -1 -p -1.00471 0.129616 -0.920818 -p -1 0.129616 0 -p -0.995291 0.129616 0.920818 -p -2.98023e-08 0.129616 1 -p -2.98023e-08 0.129616 1 -p -2.98023e-08 0.129616 1 -p -2.98023e-08 -0.129616 1 -p -2.98023e-08 -0.129616 1 -p -2.98023e-08 -0.129616 1 -p -0.99465 -0.129616 0.904438 -p -1 -0.129616 0 -p -1.005351 -0.129616 -0.904438 -p 0 -0.129616 -1 -p 0 -0.129616 -1 -p 0 0.129616 -1 -p 0 0.129616 -1 -p 0 0.129616 -1 -k 0 -k 0 -k 0 -k 1 -k 1 -k 1 -k 2 -k 2 -k 2 -k 3 -k 3 -k 3 -k 4 -k 4 -k 4 -k 5 -k 5 -k 5 -k 6 -k 6 -k 6 ;")
         cmds.bezierCurveToNurbs()
-        cmds.rename(curve,name)
+        cmds.rename(curve, name)
         # todo: fix rotate
         cmds.setAttr("%s.rotateY" % name, 90)
+        cmds.setAttr("%s.rotateX" % name, 90)
+        cmds.setAttr("%s.scaleX" % name, sc)
+        cmds.setAttr("%s.scaleY" % name, sc)
+        cmds.setAttr("%s.scaleZ" % name, sc)
         cmds.makeIdentity("%s" % name, apply=True, t=1, r=1, s=1, n=0)
