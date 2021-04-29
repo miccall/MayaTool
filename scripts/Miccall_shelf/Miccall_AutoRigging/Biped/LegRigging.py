@@ -33,21 +33,15 @@ else:
 
 class LegRigging:
     def __init__(self, ResJNT=None):
-
-        if ResJNT is None:
-            self.ResultJoints = ["leftThigh_result_JNT", "leftShin_result_JNT", "leftFoot_result_JNT",
-                                 "leftBall_result_JNT", "leftToe_result_JNT"]
-        else:
-            self.ResultJoints = ResJNT
-
+        self.ResultJoints = ResJNT
         self.FKJoints = self.CreatChain("FK", False)
         self.IKJoints = self.CreatChain("IK", False)
+        self.CalulatePos()
         self.IKControl = self.CreateIKControl()
         self.LegControl = self.CreateLegControl()
         self.isNoFilpKneeEnable = False
         self.isPoleVectorKneeEnable = True
         self.SnappableKneefoPoleVectorKneeEnable = True
-        self.CalulatePos()
 
     def CreateIKControl(self):
         IKControlName = "Leg_L_IK_Ctr"
@@ -67,6 +61,13 @@ class LegRigging:
                      attributeType="float", defaultValue=1.0, minValue=0.0, maxValue=1)
         cmds.setAttr("%s.%s" % (LegControlName, FKIKSwitch), keyable=True)
 
+        cmds.setAttr("%s.translateX" % LegControlName, self.EndPos[0])
+        cmds.setAttr("%s.translateY" % LegControlName, self.EndPos[1])
+        cmds.setAttr("%s.translateZ" % LegControlName, self.EndPos[2] - 5)
+        cmds.setAttr("%s.scaleX" % LegControlName, 5)
+        cmds.setAttr("%s.scaleY" % LegControlName, 5)
+        cmds.setAttr("%s.scaleZ" % LegControlName, 5)
+        cmds.parentConstraint(self.ResultJoints[2], LegControlName)
         return LegControlName
         pass
 
@@ -79,6 +80,8 @@ class LegRigging:
         ikHandleName = cmds.ikHandle(sj=start, ee=end, sol="ikRPsolver")
         cmds.rename(ikHandleName[0], "%s_HDL" % start)
         cmds.rename(ikHandleName[1], "%s_Eff" % start)
+        cmds.setAttr("%s_HDL.visibility" % start, 0)
+        cmds.setAttr("%s_Eff.visibility" % start, 0)
         cmds.parent("%s_HDL" % start, self.IKControl)
         return "%s_HDL" % start
 
@@ -126,7 +129,8 @@ class LegRigging:
         self.LegDistance = "LegDistance"
         LegDistanceParent = cmds.listRelatives("LegDistance", parent=True)
         cmds.rename(LegDistanceParent, "LegDistance_Trans")
-
+        cmds.setAttr("%s.visibility" % "LegDistance_Trans", 0)
+        cmds.setAttr("%s.visibility" % self.LegDistanceObjs[1], 0)
         # Create Foot IK
         self.CreateIK(self.IKJoints[2], self.IKJoints[3])
         self.CreateIK(self.IKJoints[3], self.IKJoints[4])
@@ -136,6 +140,35 @@ class LegRigging:
         self.Build_PV()
         # if self.SnappableKneefoPoleVectorKneeEnable:
         #     self.BuildSnappableKnee()
+        # set IK FK visiable switch
+
+        # FK Layer
+        FK_LayerName = "L_FK_Ctr_Layer"
+        cmds.select("Thigh_L_FK_Ctr")
+        cmds.createDisplayLayer(name=FK_LayerName, number=1, nr=True)
+        cmds.setAttr("%s.displayType" % FK_LayerName, 0)
+        cmds.setAttr("%s.color" % FK_LayerName, 18)
+        cmds.setAttr("%s.overrideColorRGB" % FK_LayerName, 0, 0, 0)
+        cmds.setAttr("%s.overrideRGBColors" % FK_LayerName, 0)
+        # IK Layer
+        FK_LayerName = "L_IK_Ctr_Layer"
+        cmds.select("Leg_L_IK_Ctr")
+        cmds.createDisplayLayer(name=FK_LayerName, number=1, nr=True)
+        cmds.setAttr("%s.displayType" % FK_LayerName, 0)
+        cmds.setAttr("%s.color" % FK_LayerName, 14)
+        cmds.setAttr("%s.overrideColorRGB" % FK_LayerName, 0, 0, 0)
+        cmds.setAttr("%s.overrideRGBColors" % FK_LayerName, 0)
+
+        # Controller Visiable
+        devNode = cmds.shadingNode("plusMinusAverage", asUtility=True)
+        cmds.setAttr("%s.operation" % devNode, 2)
+        cmds.setAttr("%s.input1D[0]" % devNode, 1)
+        cmds.connectAttr("%s.FK_IK_Blend" % self.LegControl, "%s.input1D[1]" % devNode, f=True)
+        # 直接连FK 的 vis
+        cmds.connectAttr("%s.FK_IK_Blend" % self.LegControl, "Thigh_L_FK_Ctr.visibility", f=True)
+        # dev 连 IK 的 vis
+        cmds.connectAttr("%s.output1D" % devNode, "Leg_L_IK_Ctr.visibility", f=True)
+        cmds.connectAttr("%s.output1D" % devNode, "%s.visibility" % self.IKJoints[0], f=True)
 
     def LinkAttr(self, Chain1, chain2, Attr, Control, Control_Attr):
         for i in range(0, len(Chain1)):
@@ -165,6 +198,7 @@ class LegRigging:
         cmds.setAttr("%s.translateX" % self.leftKnee_Pv_LOC, self.polePos[0])
         cmds.setAttr("%s.translateY" % self.leftKnee_Pv_LOC, self.polePos[1])
         cmds.setAttr("%s.translateZ" % self.leftKnee_Pv_LOC, self.polePos[2])
+        cmds.setAttr("%s.visibility" % self.leftKnee_Pv_LOC, 0)
         cmds.setAttr("%s.translateX" % self.PVControl, self.polePos[0])
         cmds.setAttr("%s.translateY" % self.PVControl, self.polePos[1])
         cmds.setAttr("%s.translateZ" % self.PVControl, self.polePos[2])
