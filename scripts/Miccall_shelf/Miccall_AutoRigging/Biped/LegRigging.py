@@ -79,7 +79,7 @@ class LegRigging:
         ikHandleName = cmds.ikHandle(sj=start, ee=end, sol="ikRPsolver")
         cmds.rename(ikHandleName[0], "%s_HDL" % start)
         cmds.rename(ikHandleName[1], "%s_Eff" % start)
-        # cmds.parent("%s_HDL" % start, self.IKControl)
+        cmds.parent("%s_HDL" % start, self.IKControl)
         return "%s_HDL" % start
 
     def CreatChain(self, Attr, OnlyLeg=False):
@@ -112,10 +112,8 @@ class LegRigging:
         # Create Leg FK Main
         self.CreateFKControl()
         # Create Leg IK Main
-        # self.LegIKHandle = self.CreateIK(self.IKJoints[0], self.IKJoints[2])
-        # cmds.parent(self.LegIKHandle, self.IKControl)
+        self.LegIKHandle = self.CreateIK(self.IKJoints[0], self.IKJoints[2])
 
-        """
         # distance
         self.LegDistance = cmds.distanceDimension(sp=self.StartPos, ep=self.EndPos)
         self.LegDistanceObjs = cmds.listConnections(self.LegDistance, destination=False)
@@ -129,45 +127,15 @@ class LegRigging:
         LegDistanceParent = cmds.listRelatives("LegDistance", parent=True)
         cmds.rename(LegDistanceParent, "LegDistance_Trans")
 
-        # Create IK
+        # Create Foot IK
         self.CreateIK(self.IKJoints[2], self.IKJoints[3])
         self.CreateIK(self.IKJoints[3], self.IKJoints[4])
 
-        # Create No Filp Knee
-        if self.isNoFilpKneeEnable:
-            if self.isPoleVectorKneeEnable:
-                self.NoFilpChain = self.CreatChain("NoFilp")
-                self.NoFlipIKHandle = self.CreateIK(self.NoFilpChain[0], self.NoFilpChain[2])
-            else:
-                self.NoFlipIKHandle = self.CreateIK(self.IKJoints[0], self.IKJoints[2])
-            self.Build_NoFlip()
-
         # Create PoleVector Knee
-        if self.isPoleVectorKneeEnable:
-            if self.isNoFilpKneeEnable:
-                self.PVChain = self.CreatChain("PV")
-                self.PvIKHandle = self.CreateIK(self.PVChain[0], self.PVChain[2])
-            else:
-                self.PvIKHandle = self.CreateIK(self.IKJoints[0], self.IKJoints[2])
-            self.Build_PV()
-            if self.SnappableKneefoPoleVectorKneeEnable:
-                self.BuildSnappableKnee()
-
-        # Blend
-        if self.isNoFilpKneeEnable and self.isPoleVectorKneeEnable:
-            self.NoFilpAndPVBlendNodeRotateList = self.BlendColor(self.NoFilpChain, self.PVChain, self.IKJoints,
-                                                                  "rotate")
-            self.NoFilpAndPVBlendNodeTranslateList = self.BlendColor(self.NoFilpChain, self.PVChain, self.IKJoints,
-                                                                     "translate")
-
-            cmds.addAttr(self.LegControl, ln="autoManualKneeBlend", niceName="Auto / Manual Knee Blend",
-                         attributeType="float", defaultValue=1.0, minValue=0.0, maxValue=1)
-            cmds.setAttr("%s.autoManualKneeBlend" % self.LegControl, keyable=True)
-
-            self.LinkAttr(self.NoFilpChain, self.PVChain, "rotate", self.LegControl, "autoManualKneeBlend")
-            self.LinkAttr(self.NoFilpChain, self.PVChain, "translate", self.LegControl, "autoManualKneeBlend")
-        
-        """
+        self.PvIKHandle = self.CreateIK(self.IKJoints[0], self.IKJoints[2])
+        self.Build_PV()
+        if self.SnappableKneefoPoleVectorKneeEnable:
+            self.BuildSnappableKnee()
 
     def LinkAttr(self, Chain1, chain2, Attr, Control, Control_Attr):
         for i in range(0, len(Chain1)):
