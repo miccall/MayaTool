@@ -55,6 +55,7 @@ class LegRigging:
         self.LinkIKFK()
         # IK 控制器是 一个
         self.IKControl = self.CreateIKControl()
+
         # FK 控制器是一组
         self.FKControls = self.CreateFKControl()
         # Layer
@@ -62,6 +63,9 @@ class LegRigging:
         self.AddToLayer("Leg_L_IK_Ctr", 14)
         self.AddToLayer(self.IKJoints[0], 1)
         self.AddToLayer(self.FKJoints[4], 2)
+
+        # Reverse
+        self.reverseControll()
 
         # Controller Visiable
         devNode = cmds.shadingNode("plusMinusAverage", asUtility=True)
@@ -93,6 +97,7 @@ class LegRigging:
             JointNameSplits = JointName.split("_")
             newChainName = JointNameSplits[0] + "_" + JointNameSplits[1] + "_%s" % Attr + "_JNT"
             cmds.rename(realnamelist[i], newChainName)
+            # cmds.setAttr("%s.rotateOrder" % newChainName, 3)
             realnamelist[i] = newChainName
         if OnlyLeg:
             cmds.delete("leftToe_%s_IK_JNT" % Attr)
@@ -315,8 +320,8 @@ class LegRigging:
         # IK function
         self.LegIKHandle = self.CreateIK(self.IKJoints[0], self.IKJoints[2])
         # Create Foot IK
-        self.CreateIK(self.IKJoints[2], self.IKJoints[3])
-        self.CreateIK(self.IKJoints[3], self.IKJoints[4])
+        self.FootIKHandle = self.CreateIK(self.IKJoints[2], self.IKJoints[3])
+        self.BallIKHandle = self.CreateIK(self.IKJoints[3], self.IKJoints[4])
 
         # 创建Pole vector
         self.PvIKHandle = self.LegIKHandle
@@ -335,3 +340,124 @@ class LegRigging:
         cmds.setAttr("%s.color" % LayerName, colorIndex)
         cmds.setAttr("%s.overrideColorRGB" % LayerName, 0, 0, 0)
         cmds.setAttr("%s.overrideRGBColors" % LayerName, 0)
+
+    def reverseControll(self):
+        loc = cmds.spaceLocator(p=(0, 0, 0))
+        cmds.rename(loc[0], "Heel_L_Loc")
+        Footpos = cmds.xform(self.ResultJoints[2], q=1, ws=1, rp=1)
+        cmds.setAttr("Heel_L_Loc.tx", Footpos[0])
+        cmds.setAttr("Heel_L_Loc.ty", 0)
+        cmds.setAttr("Heel_L_Loc.tz", Footpos[2] - 5)
+
+        loc = cmds.spaceLocator(p=(0, 0, 0))
+        Ballpos = cmds.xform(self.ResultJoints[3], q=1, ws=1, rp=1)
+        cmds.rename(loc[0], "Ball_L_Loc")
+        cmds.setAttr("Ball_L_Loc.tx", Ballpos[0])
+        cmds.setAttr("Ball_L_Loc.ty", Ballpos[1])
+        cmds.setAttr("Ball_L_Loc.tz", Ballpos[2])
+
+        loc = cmds.spaceLocator(p=(0, 0, 0))
+        Toepos = cmds.xform(self.ResultJoints[4], q=1, ws=1, rp=1)
+        cmds.rename(loc[0], "Toe_L_Loc")
+        cmds.setAttr("Toe_L_Loc.tx", Toepos[0])
+        cmds.setAttr("Toe_L_Loc.ty", Toepos[1])
+        cmds.setAttr("Toe_L_Loc.tz", Toepos[2])
+
+        # Hirechy
+        cmds.parent("Heel_L_Loc", self.IKControl)
+        cmds.parent("Ball_L_Loc", "Toe_L_Loc")
+        cmds.parent("Toe_L_Loc", "Heel_L_Loc")
+        cmds.parent(self.LegIKHandle, "Ball_L_Loc")
+        cmds.parent(self.FootIKHandle, "Ball_L_Loc")
+        cmds.parent(self.BallIKHandle, "Heel_L_Loc")
+        # cmds.parent(self.PVControl, "Ball_L_Loc")
+
+        # Add Attr
+        cmds.addAttr(self.IKControl, ln="Roll", niceName="Roll",
+                     attributeType="float", defaultValue=0.0)
+        cmds.setAttr("%s.%s" % (self.IKControl, "Roll"), keyable=True)
+
+        cmds.addAttr(self.IKControl, ln="BendAngle", niceName="Bend Limite Angle",
+                     attributeType="float", defaultValue=45)
+        cmds.setAttr("%s.%s" % (self.IKControl, "BendAngle"), keyable=True)
+
+        cmds.addAttr(self.IKControl, ln="StraightAngle", niceName="Toe Straight aAngle",
+                     attributeType="float", defaultValue=90)
+        cmds.setAttr("%s.%s" % (self.IKControl, "StraightAngle"), keyable=True)
+
+        clampHeel = cmds.shadingNode("clamp", asUtility=True)
+        cmds.rename(clampHeel, "Heel_L_Clamp")
+        clampHeel = "Heel_L_Clamp"
+
+        cmds.connectAttr("%s.Roll" % self.IKControl, "%s.inputR" % clampHeel)
+        cmds.setAttr("%s.minR" % clampHeel, -70)
+        cmds.connectAttr("%s.outputR" % clampHeel, "%s.rx" % "Heel_L_Loc")
+
+        Ball_Zero2Bend_Clamp = cmds.shadingNode("clamp", asUtility=True)
+        cmds.rename(Ball_Zero2Bend_Clamp, "Ball_Zero2Bend_Clamp")
+        Ball_Zero2Bend_Clamp = "Ball_Zero2Bend_Clamp"
+
+        cmds.connectAttr("%s.Roll" % self.IKControl, "%s.inputR" % Ball_Zero2Bend_Clamp)
+        cmds.connectAttr("%s.BendAngle" % self.IKControl, "%s.maxR" % Ball_Zero2Bend_Clamp)
+
+        Ball_02B_PercentRange = cmds.shadingNode("setRange", asUtility=True)
+        cmds.rename(Ball_02B_PercentRange, "Ball_02B_PercentRange")
+        Ball_02B_PercentRange = "Ball_02B_PercentRange"
+        cmds.connectAttr("%s.minR" % Ball_Zero2Bend_Clamp, "%s.oldMinX" % Ball_02B_PercentRange)
+        cmds.connectAttr("%s.maxR" % Ball_Zero2Bend_Clamp, "%s.oldMaxX" % Ball_02B_PercentRange)
+        cmds.setAttr("%s.minX" % Ball_02B_PercentRange, 0)
+        cmds.setAttr("%s.maxX" % Ball_02B_PercentRange, 1)
+        cmds.connectAttr("%s.inputR" % Ball_Zero2Bend_Clamp, "%s.valueX" % Ball_02B_PercentRange)
+
+        Foot_InvertPercent = cmds.shadingNode("plusMinusAverage", asUtility=True)
+        cmds.rename(Foot_InvertPercent, "Foot_InvertPercent")
+        Foot_InvertPercent = "Foot_InvertPercent"
+        cmds.setAttr("%s.input1D[0]" % Foot_InvertPercent, 1)
+        cmds.setAttr("%s.operation" % Foot_InvertPercent, 2)
+
+        Foot_B2S_Clamp = cmds.shadingNode("clamp", asUtility=True)
+        cmds.rename(Foot_B2S_Clamp, "Foot_B2S_Clamp")
+        Foot_B2S_Clamp = "Foot_B2S_Clamp"
+        cmds.connectAttr("%s.BendAngle" % self.IKControl, "%s.minR" % Foot_B2S_Clamp)
+        cmds.connectAttr("%s.StraightAngle" % self.IKControl, "%s.maxR" % Foot_B2S_Clamp)
+        cmds.connectAttr("%s.Roll" % self.IKControl, "%s.inputR" % Foot_B2S_Clamp)
+
+        Foot_B2S_PercentRange = cmds.shadingNode("setRange", asUtility=True)
+        cmds.rename(Foot_B2S_PercentRange, "Foot_B2S_PercentRange")
+        Foot_B2S_PercentRange = "Foot_B2S_PercentRange"
+        cmds.connectAttr("%s.minR" % Foot_B2S_Clamp, "%s.oldMinX" % Foot_B2S_PercentRange)
+        cmds.connectAttr("%s.maxR" % Foot_B2S_Clamp, "%s.oldMaxX" % Foot_B2S_PercentRange)
+        cmds.setAttr("%s.minX" % Foot_B2S_PercentRange, 0)
+        cmds.setAttr("%s.maxX" % Foot_B2S_PercentRange, 1)
+        cmds.connectAttr("%s.outputR" % Foot_B2S_Clamp, "%s.valueX" % Foot_B2S_PercentRange)
+        cmds.connectAttr("%s.outValue.outValueX" % Foot_B2S_PercentRange, "%s.input1D[1]" % Foot_InvertPercent)
+
+        Foot_Roll_Mult = cmds.shadingNode("multiplyDivide", asUtility=True)
+        cmds.rename(Foot_Roll_Mult, "Foot_Roll_Mult")
+        Foot_Roll_Mult = "Foot_Roll_Mult"
+        cmds.connectAttr("%s.outValue.outValueX" % Foot_B2S_PercentRange, "%s.input1X" % Foot_Roll_Mult)
+        cmds.connectAttr("%s.inputR" % Foot_B2S_Clamp, "%s.input2X" % Foot_Roll_Mult)
+        cmds.connectAttr("%s.outputX" % Foot_Roll_Mult, "%s.rx" % "Toe_L_Loc")
+
+        Ball_percent_Mult = cmds.shadingNode("multiplyDivide", asUtility=True)
+        cmds.rename(Ball_percent_Mult, "Ball_percent_Mult")
+        Ball_percent_Mult = "Ball_percent_Mult"
+        cmds.connectAttr("%s.outValue.outValueX" % Ball_02B_PercentRange, "%s.input1X" % Ball_percent_Mult)
+        cmds.connectAttr("%s.output1D" % Foot_InvertPercent, "%s.input2X" % Ball_percent_Mult)
+
+        Ball_Roll_Mult = cmds.shadingNode("multiplyDivide", asUtility=True)
+        cmds.rename(Ball_Roll_Mult, "Ball_Roll_Mult")
+        Ball_Roll_Mult = "Ball_Roll_Mult"
+        cmds.connectAttr("%s.outputX" % Ball_percent_Mult, "%s.input1X" % Ball_Roll_Mult)
+        cmds.connectAttr("%s.Roll" % self.IKControl, "%s.input2X" % Ball_Roll_Mult)
+        cmds.connectAttr("%s.outputX" % Ball_Roll_Mult, "%s.rx" % "Ball_L_Loc")
+
+        """
+        clampToe = cmds.shadingNode("clamp", asUtility=True)
+        cmds.rename(clampToe, "Toe_L_Clamp")
+        clampToe = "Toe_L_Clamp"
+
+        cmds.connectAttr("%s.Roll" % self.IKControl, "%s.inputR" % clampToe)
+        cmds.setAttr("%s.maxR" % clampToe, 90)
+        cmds.connectAttr("%s.outputR" % clampToe, "%s.rx" % "Toe_L_Loc")
+        """
