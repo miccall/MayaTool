@@ -33,59 +33,53 @@ else:
 
 class LegRigging:
     def __init__(self, ResJNT=None):
+        # 原始的骨骼链
         self.ResultJoints = ResJNT
-        self.FKJoints = self.CreatChain("FK", False)
-        self.IKJoints = self.CreatChain("IK", False)
-        self.CalulatePos()
-        self.IKControl = self.CreateIKControl()
-        self.LegControl = self.CreateLegControl()
+        # 从 thing 到 foot 的 位置
+        self.StartPos = cmds.xform(self.ResultJoints[0], q=1, ws=1, rp=1)
+        self.EndPos = cmds.xform(self.ResultJoints[2], q=1, ws=1, rp=1)
+        # config
         self.isNoFilpKneeEnable = False
         self.isPoleVectorKneeEnable = True
         self.SnappableKneefoPoleVectorKneeEnable = True
 
-    def CreateIKControl(self):
-        IKControlName = "Leg_L_IK_Ctr"
-        CT.IKControl(IKControlName, self.IKJoints[2], self.IKJoints[4])
-        return IKControlName
+    def MainProcess(self):
+        # 创建一条 IK 的骨骼链
+        self.IKJoints = self.CreatChain("IK", False)
+        # 创建一条 FK 的骨骼链
+        self.FKJoints = self.CreatChain("FK", False)
+        # 创建一个 Base Control
+        self.LegControl = self.CreateLegControl()
+        # 混合 IK 和 FK
+        self.IKFKSwitch()
+        self.LinkIKFK()
+        # IK 控制器是 一个
+        self.IKControl = self.CreateIKControl()
+        # FK 控制器是一组
+        self.FKControls = self.CreateFKControl()
+        # Layer
+        self.AddToLayer("Thigh_L_FK_Ctr", 18)
+        self.AddToLayer("Leg_L_IK_Ctr", 14)
+        self.AddToLayer(self.IKJoints[0], 1)
+        self.AddToLayer(self.FKJoints[4], 2)
+
+        # Controller Visiable
+        devNode = cmds.shadingNode("plusMinusAverage", asUtility=True)
+        cmds.setAttr("%s.operation" % devNode, 2)
+        cmds.setAttr("%s.input1D[0]" % devNode, 1)
+        cmds.connectAttr("%s.FK_IK_Blend" % self.LegControl, "%s.input1D[1]" % devNode, f=True)
+        # 直接连FK 的 vis
+        cmds.connectAttr("%s.FK_IK_Blend" % self.LegControl, "Thigh_L_FK_Ctr.visibility", f=True)
+        # dev 连 IK 的 vis
+        cmds.connectAttr("%s.output1D" % devNode, "Leg_L_IK_Ctr.visibility", f=True)
+        cmds.connectAttr("%s.output1D" % devNode, "%s.visibility" % self.IKJoints[0], f=True)
         pass
-
-    def CreateLegControl(self):
-        LegControlName = "Leg_L_Main_Ctr"
-        FKIKSwitch = "FK_IK_Blend"
-        curveMaker = cmds.circle(nr=(0, 1, 0))
-        curve = curveMaker[0]
-        cmds.rename(curve, LegControlName)
-
-        # Add FK_IK_Blend Attr
-        cmds.addAttr(LegControlName, ln=FKIKSwitch, niceName="IK / FK Blend",
-                     attributeType="float", defaultValue=1.0, minValue=0.0, maxValue=1)
-        cmds.setAttr("%s.%s" % (LegControlName, FKIKSwitch), keyable=True)
-
-        cmds.setAttr("%s.translateX" % LegControlName, self.EndPos[0])
-        cmds.setAttr("%s.translateY" % LegControlName, self.EndPos[1])
-        cmds.setAttr("%s.translateZ" % LegControlName, self.EndPos[2] - 5)
-        cmds.setAttr("%s.scaleX" % LegControlName, 5)
-        cmds.setAttr("%s.scaleY" % LegControlName, 5)
-        cmds.setAttr("%s.scaleZ" % LegControlName, 5)
-        cmds.parentConstraint(self.ResultJoints[2], LegControlName)
-        return LegControlName
-        pass
-
-    def CalulatePos(self):
-        self.StartPos = cmds.xform(self.IKJoints[0], q=1, ws=1, rp=1)
-        self.EndPos = cmds.xform(self.IKJoints[2], q=1, ws=1, rp=1)
-        pass
-
-    def CreateIK(self, start, end):
-        ikHandleName = cmds.ikHandle(sj=start, ee=end, sol="ikRPsolver")
-        cmds.rename(ikHandleName[0], "%s_HDL" % start)
-        cmds.rename(ikHandleName[1], "%s_Eff" % start)
-        cmds.setAttr("%s_HDL.visibility" % start, 0)
-        cmds.setAttr("%s_Eff.visibility" % start, 0)
-        cmds.parent("%s_HDL" % start, self.IKControl)
-        return "%s_HDL" % start
 
     def CreatChain(self, Attr, OnlyLeg=False):
+        """
+            创建腿部的复制骨骼链
+            可以只创建腿而不包括脚
+        """
         NewChainList = cmds.duplicate(self.ResultJoints[0])
         realname = ""
         realnamelist = []
@@ -109,84 +103,50 @@ class LegRigging:
         realnamelist.reverse()
         return realnamelist
 
-    def MainProcess(self):
-        self.IKFKSwitch()
-        self.LinkIKFK()
-        # Create Leg FK Main
-        self.CreateFKControl()
-        # Create Leg IK Main
-        self.LegIKHandle = self.CreateIK(self.IKJoints[0], self.IKJoints[2])
+    def CreateLegControl(self):
+        LegControlName = "Leg_L_Main_Ctr"
+        FKIKSwitch = "FK_IK_Blend"
+        curveMaker = cmds.circle(nr=(0, 1, 0))
+        curve = curveMaker[0]
+        cmds.rename(curve, LegControlName)
 
-        # distance
-        self.LegDistance = cmds.distanceDimension(sp=self.StartPos, ep=self.EndPos)
-        self.LegDistanceObjs = cmds.listConnections(self.LegDistance, destination=False)
-        cmds.rename(self.LegDistanceObjs[0], "leftLeg_IK_lengthStart_LOC")
-        cmds.rename(self.LegDistanceObjs[1], "leftLeg_IK_lengthEnd_LOC")
-        self.LegDistanceObjs[0] = "leftLeg_IK_lengthStart_LOC"
-        self.LegDistanceObjs[1] = "leftLeg_IK_lengthEnd_LOC"
-        cmds.parent(self.LegDistanceObjs[1], self.IKControl)
-        cmds.rename(self.LegDistance, "LegDistance")
-        self.LegDistance = "LegDistance"
-        LegDistanceParent = cmds.listRelatives("LegDistance", parent=True)
-        cmds.rename(LegDistanceParent, "LegDistance_Trans")
-        cmds.setAttr("%s.visibility" % "LegDistance_Trans", 0)
-        cmds.setAttr("%s.visibility" % self.LegDistanceObjs[1], 0)
-        # Create Foot IK
-        self.CreateIK(self.IKJoints[2], self.IKJoints[3])
-        self.CreateIK(self.IKJoints[3], self.IKJoints[4])
+        # Add FK_IK_Blend Attr
+        cmds.addAttr(LegControlName, ln=FKIKSwitch, niceName="IK / FK Blend",
+                     attributeType="float", defaultValue=1.0, minValue=0.0, maxValue=1)
+        cmds.setAttr("%s.%s" % (LegControlName, FKIKSwitch), keyable=True)
+        cmds.setAttr("%s.translateX" % LegControlName, self.EndPos[0])
+        cmds.setAttr("%s.translateY" % LegControlName, self.EndPos[1])
+        cmds.setAttr("%s.translateZ" % LegControlName, self.EndPos[2] - 5)
+        cmds.setAttr("%s.scaleX" % LegControlName, 5)
+        cmds.setAttr("%s.scaleY" % LegControlName, 5)
+        cmds.setAttr("%s.scaleZ" % LegControlName, 5)
+        cmds.parentConstraint(self.ResultJoints[2], LegControlName)
+        cmds.setAttr("%s.tx" % LegControlName, keyable=False, channelBox=False, lock=True)
+        cmds.setAttr("%s.ty" % LegControlName, keyable=False, channelBox=False, lock=True)
+        cmds.setAttr("%s.tz" % LegControlName, keyable=False, channelBox=False, lock=True)
+        cmds.setAttr("%s.rx" % LegControlName, keyable=False, channelBox=False, lock=True)
+        cmds.setAttr("%s.ry" % LegControlName, keyable=False, channelBox=False, lock=True)
+        cmds.setAttr("%s.rz" % LegControlName, keyable=False, channelBox=False, lock=True)
+        cmds.setAttr("%s.sx" % LegControlName, keyable=False, channelBox=False, lock=True)
+        cmds.setAttr("%s.sy" % LegControlName, keyable=False, channelBox=False, lock=True)
+        cmds.setAttr("%s.sz" % LegControlName, keyable=False, channelBox=False, lock=True)
+        return LegControlName
+        pass
 
-        # Create PoleVector Knee
-        self.PvIKHandle = self.LegIKHandle
-        self.Build_PV()
+    def CreateIK(self, start, end):
+        ikHandleName = cmds.ikHandle(sj=start, ee=end, sol="ikRPsolver")
+        cmds.rename(ikHandleName[0], "%s_HDL" % start)
+        cmds.rename(ikHandleName[1], "%s_Eff" % start)
+        cmds.setAttr("%s_HDL.visibility" % start, 0)
+        cmds.setAttr("%s_Eff.visibility" % start, 0)
+        cmds.parent("%s_HDL" % start, self.IKControl)
+        return "%s_HDL" % start
+
+    def MainProcess2(self):
         # if self.SnappableKneefoPoleVectorKneeEnable:
         #     self.BuildSnappableKnee()
         # set IK FK visiable switch
-
-        # FK Layer
-        FK_LayerName = "L_FK_Ctr_Layer"
-        cmds.select("Thigh_L_FK_Ctr")
-        cmds.createDisplayLayer(name=FK_LayerName, number=1, nr=True)
-        cmds.setAttr("%s.displayType" % FK_LayerName, 0)
-        cmds.setAttr("%s.color" % FK_LayerName, 18)
-        cmds.setAttr("%s.overrideColorRGB" % FK_LayerName, 0, 0, 0)
-        cmds.setAttr("%s.overrideRGBColors" % FK_LayerName, 0)
-        # IK Layer
-        FK_LayerName = "L_IK_Ctr_Layer"
-        cmds.select("Leg_L_IK_Ctr")
-        cmds.createDisplayLayer(name=FK_LayerName, number=1, nr=True)
-        cmds.setAttr("%s.displayType" % FK_LayerName, 0)
-        cmds.setAttr("%s.color" % FK_LayerName, 14)
-        cmds.setAttr("%s.overrideColorRGB" % FK_LayerName, 0, 0, 0)
-        cmds.setAttr("%s.overrideRGBColors" % FK_LayerName, 0)
-
-        # Controller Visiable
-        devNode = cmds.shadingNode("plusMinusAverage", asUtility=True)
-        cmds.setAttr("%s.operation" % devNode, 2)
-        cmds.setAttr("%s.input1D[0]" % devNode, 1)
-        cmds.connectAttr("%s.FK_IK_Blend" % self.LegControl, "%s.input1D[1]" % devNode, f=True)
-        # 直接连FK 的 vis
-        cmds.connectAttr("%s.FK_IK_Blend" % self.LegControl, "Thigh_L_FK_Ctr.visibility", f=True)
-        # dev 连 IK 的 vis
-        cmds.connectAttr("%s.output1D" % devNode, "Leg_L_IK_Ctr.visibility", f=True)
-        cmds.connectAttr("%s.output1D" % devNode, "%s.visibility" % self.IKJoints[0], f=True)
-
-    def LinkAttr(self, Chain1, chain2, Attr, Control, Control_Attr):
-        for i in range(0, len(Chain1)):
-            BlendNode = 'Blend_%s_%s_%s' % (Chain1[i], chain2[i], Attr)
-            cmds.connectAttr('%s.%s' % (Control, Control_Attr), '%s.blender' % BlendNode, f=True)
         pass
-
-    def BlendColor(self, Chain1, chain2, chain3, Attr):
-        BlendNodeList = []
-        for i in range(0, len(Chain1)):
-            blendColorsNode = cmds.shadingNode('blendColors', asShader=True)
-            cmds.connectAttr('%s.%s' % (Chain1[i], Attr), '%s.color1' % blendColorsNode, f=True)
-            cmds.connectAttr('%s.%s' % (chain2[i], Attr), '%s.color2' % blendColorsNode, f=True)
-            cmds.connectAttr('%s.output' % blendColorsNode, '%s.%s' % (chain3[i], Attr), f=True)
-            NewName = 'Blend_%s_%s_%s' % (Chain1[i], chain2[i], Attr)
-            cmds.rename(blendColorsNode, NewName)
-            BlendNodeList.append(NewName)
-        return BlendNodeList
 
     def Build_PV(self):
         self.polePos = RT.calculate_pole_vector(self.IKJoints[0], self.IKJoints[1], self.IKJoints[2])
@@ -212,34 +172,12 @@ class LegRigging:
         cmds.poleVectorConstraint('%s' % self.leftKnee_Pv_LOC, self.PvIKHandle)
         cmds.parent(self.leftKnee_Pv_LOC, self.PVControl)
         cmds.parent(self.PVControl, self.IKControl)
-        pass
-
-    def Build_NoFlip(self):
-        # Create spaceLocator
-        leftKnee_noFlip_LOC = cmds.spaceLocator()
-        cmds.rename(leftKnee_noFlip_LOC, "leftKnee_noFlip_LOC")
-        leftKnee_noFlip_LOC = "leftKnee_noFlip_LOC"
-        cmds.setAttr("%s.translateX" % leftKnee_noFlip_LOC, self.EndPos[0] + 30)
-        cmds.setAttr("%s.translateY" % leftKnee_noFlip_LOC, self.EndPos[1])
-        cmds.setAttr("%s.translateZ" % leftKnee_noFlip_LOC, self.EndPos[2])
-        cmds.makeIdentity("%s" % leftKnee_noFlip_LOC, apply=True, t=1, r=1, s=1, n=0)
-
-        # make poleVectorConstraint
-        cmds.poleVectorConstraint('%s' % leftKnee_noFlip_LOC, self.NoFlipIKHandle)
-        cmds.setAttr("%s.twist" % self.NoFlipIKHandle, 90)
-
-        # follow IKControl
-        cmds.parent("%s" % leftKnee_noFlip_LOC, self.IKControl)
-
-        # make twist attr
-        cmds.group("%s" % leftKnee_noFlip_LOC, name="noFlip_knee_GRP")
-        cmds.move(self.EndPos[0], self.EndPos[1], self.EndPos[2], "%s.scalePivot" % "noFlip_knee_GRP",
-                  "%s.rotatePivot" % "noFlip_knee_GRP", absolute=True)
-
-        cmds.addAttr(self.IKControl, ln="Knee_Rotate", niceName="Knee Twist",
-                     attributeType="float", defaultValue=0.0)
-        cmds.setAttr("%s.Knee_Rotate" % self.IKControl, keyable=True)
-        cmds.connectAttr('%s.Knee_Rotate' % self.IKControl, '%s.rotateY' % "noFlip_knee_GRP", f=True)
+        cmds.setAttr("%s.rx" % self.PVControl, lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.ry" % self.PVControl, lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.rz" % self.PVControl, lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sx" % self.PVControl, lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sy" % self.PVControl, lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sz" % self.PVControl, lock=True, keyable=False, channelBox=False)
         pass
 
     def BuildSnappableKnee(self):
@@ -295,56 +233,105 @@ class LegRigging:
             self.LinkAttrOnce(i, "translate")
 
     def CreateFKControl(self):
-        self.FKControlChains = ["Thigh_L_FK_Ctr", "Shin_L_FK_Ctr", "Foot_L_FK_Ctr", "Ball_L_FK_Ctr"]
-        self.FKControlChainScale = [11, 9, 7, 5]
+        FKControlChains = ["Thigh_L_FK_Ctr", "Shin_L_FK_Ctr", "Foot_L_FK_Ctr", "Ball_L_FK_Ctr"]
+        FKControlChainScale = [11, 9, 7, 5]
         # 为 0 1 2 创建 Curve
-        for i in range(0, len(self.FKControlChains)):
-            CT.LegFKControl(self.FKControlChains[i], self.FKControlChainScale[i])
-            cmds.select(self.FKControlChains[i] + "Shape")
+        for i in range(0, len(FKControlChains)):
+            CT.LegFKControl(FKControlChains[i], FKControlChainScale[i])
+            cmds.select(FKControlChains[i] + "Shape")
             cmds.select(self.FKJoints[i], add=True)
             mel.eval("parent -r -s")
-            cmds.delete(self.FKControlChains[i])
-            cmds.rename(self.FKJoints[i], self.FKControlChains[i])
+            cmds.delete(FKControlChains[i])
+            cmds.rename(self.FKJoints[i], FKControlChains[i])
+
+        # distance
+        self.LegDistance = cmds.distanceDimension(sp=self.StartPos, ep=self.EndPos)
+        self.LegDistanceObjs = cmds.listConnections(self.LegDistance, destination=False)
+        cmds.rename(self.LegDistanceObjs[0], "leftLeg_IK_lengthStart_LOC")
+        cmds.rename(self.LegDistanceObjs[1], "leftLeg_IK_lengthEnd_LOC")
+        self.LegDistanceObjs[0] = "leftLeg_IK_lengthStart_LOC"
+        self.LegDistanceObjs[1] = "leftLeg_IK_lengthEnd_LOC"
+        cmds.parent(self.LegDistanceObjs[1], self.IKControl)
+        cmds.rename(self.LegDistance, "LegDistance")
+        self.LegDistance = "LegDistance"
+        LegDistanceParent = cmds.listRelatives("LegDistance", parent=True)
+        cmds.rename(LegDistanceParent, "LegDistance_Trans")
+        cmds.setAttr("%s.visibility" % "LegDistance_Trans", 0)
+        cmds.setAttr("%s.visibility" % self.LegDistanceObjs[1], 0)
 
         # Add for Stretch
-        cmds.addAttr(self.FKControlChains[0], ln="Lenght", attributeType="double", defaultValue=1.0, minValue=0.0,
+        cmds.addAttr(FKControlChains[0], ln="Lenght", attributeType="double", defaultValue=1.0, minValue=0.0,
                      maxValue=10.0)
-        cmds.setAttr("%s.Lenght" % self.FKControlChains[0], keyable=True)
-        cmds.addAttr(self.FKControlChains[1], ln="Lenght", attributeType="double", defaultValue=1.0, minValue=0.0,
+        cmds.setAttr("%s.Lenght" % FKControlChains[0], keyable=True)
+        cmds.addAttr(FKControlChains[1], ln="Lenght", attributeType="double", defaultValue=1.0, minValue=0.0,
                      maxValue=10.0)
-        cmds.setAttr("%s.Lenght" % self.FKControlChains[1], keyable=True)
+        cmds.setAttr("%s.Lenght" % FKControlChains[1], keyable=True)
 
         # setDrivenKeyframe
-        cmds.setAttr('%s.Lenght' % self.FKControlChains[0], 1)
-        cmds.setDrivenKeyframe('%s.translateX' % self.FKControlChains[1],
-                               cd='%s.%s' % (self.FKControlChains[0], "Lenght"),
+        cmds.setAttr('%s.Lenght' % FKControlChains[0], 1)
+        cmds.setDrivenKeyframe('%s.translateX' % FKControlChains[1],
+                               cd='%s.%s' % (FKControlChains[0], "Lenght"),
                                outTangentType="linear", inTangentType="linear")
-        cmds.setAttr('%s.Lenght' % self.FKControlChains[0], 0)
-        cmds.setAttr('%s.translateX' % self.FKControlChains[1], 0)
-        cmds.setDrivenKeyframe('%s.translateX' % self.FKControlChains[1],
-                               cd='%s.%s' % (self.FKControlChains[0], "Lenght"),
+        cmds.setAttr('%s.Lenght' % FKControlChains[0], 0)
+        cmds.setAttr('%s.translateX' % FKControlChains[1], 0)
+        cmds.setDrivenKeyframe('%s.translateX' % FKControlChains[1],
+                               cd='%s.%s' % (FKControlChains[0], "Lenght"),
                                outTangentType="linear", inTangentType="linear")
-        cmds.setAttr('%s.Lenght' % self.FKControlChains[0], 1)
-        cmds.setAttr('%s.Lenght' % self.FKControlChains[1], 1)
-        cmds.setDrivenKeyframe('%s.translateX' % self.FKControlChains[2],
-                               cd='%s.%s' % (self.FKControlChains[1], "Lenght"),
+        cmds.setAttr('%s.Lenght' % FKControlChains[0], 1)
+        cmds.setAttr('%s.Lenght' % FKControlChains[1], 1)
+        cmds.setDrivenKeyframe('%s.translateX' % FKControlChains[2],
+                               cd='%s.%s' % (FKControlChains[1], "Lenght"),
                                outTangentType="linear", inTangentType="linear")
-        cmds.setAttr('%s.Lenght' % self.FKControlChains[1], 0)
-        cmds.setAttr('%s.translateX' % self.FKControlChains[2], 0)
-        cmds.setDrivenKeyframe('%s.translateX' % self.FKControlChains[2],
-                               cd='%s.%s' % (self.FKControlChains[1], "Lenght"),
+        cmds.setAttr('%s.Lenght' % FKControlChains[1], 0)
+        cmds.setAttr('%s.translateX' % FKControlChains[2], 0)
+        cmds.setDrivenKeyframe('%s.translateX' % FKControlChains[2],
+                               cd='%s.%s' % (FKControlChains[1], "Lenght"),
                                outTangentType="linear", inTangentType="linear")
-        cmds.setAttr('%s.Lenght' % self.FKControlChains[1], 1)
+        cmds.setAttr('%s.Lenght' % FKControlChains[1], 1)
 
-        cmds.setInfinity('%s.translateX' % self.FKControlChains[1], postInfinite='cycleRelative')
-        cmds.setInfinity('%s.translateX' % self.FKControlChains[2], postInfinite='cycleRelative')
+        cmds.setInfinity('%s.translateX' % FKControlChains[1], postInfinite='cycleRelative')
+        cmds.setInfinity('%s.translateX' % FKControlChains[2], postInfinite='cycleRelative')
 
-        for i in range(0, len(self.FKControlChains)):
+        for i in range(0, len(FKControlChains)):
             # lock & hide
-            cmds.setAttr("%s.translateX" % self.FKControlChains[i], lock=True, keyable=False, channelBox=False)
-            cmds.setAttr("%s.translateY" % self.FKControlChains[i], lock=True, keyable=False, channelBox=False)
-            cmds.setAttr("%s.translateZ" % self.FKControlChains[i], lock=True, keyable=False, channelBox=False)
-            cmds.setAttr("%s.scaleX" % self.FKControlChains[i], lock=True, keyable=False, channelBox=False)
-            cmds.setAttr("%s.scaleY" % self.FKControlChains[i], lock=True, keyable=False, channelBox=False)
-            cmds.setAttr("%s.scaleZ" % self.FKControlChains[i], lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.translateX" % FKControlChains[i], lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.translateY" % FKControlChains[i], lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.translateZ" % FKControlChains[i], lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.scaleX" % FKControlChains[i], lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.scaleY" % FKControlChains[i], lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.scaleZ" % FKControlChains[i], lock=True, keyable=False, channelBox=False)
+
+        return FKControlChains
         pass
+
+    def CreateIKControl(self):
+        IKControlName = "Leg_L_IK_Ctr"
+        # 控制器
+        CT.IKControl(IKControlName, self.IKJoints[2], self.IKJoints[4])
+        cmds.setAttr("%s.sx" % IKControlName, lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sy" % IKControlName, lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sz" % IKControlName, lock=True, keyable=False, channelBox=False)
+        self.IKControl = IKControlName
+        # IK function
+        self.LegIKHandle = self.CreateIK(self.IKJoints[0], self.IKJoints[2])
+        # Create Foot IK
+        self.CreateIK(self.IKJoints[2], self.IKJoints[3])
+        self.CreateIK(self.IKJoints[3], self.IKJoints[4])
+
+        # 创建Pole vector
+        self.PvIKHandle = self.LegIKHandle
+        self.Build_PV()
+
+        return IKControlName
+        pass
+
+    def AddToLayer(self, Hierarchy, colorIndex=0):
+        # Hierarchy = "Thigh_L_FK_Ctr"
+        nameList = Hierarchy.split("_")
+        LayerName = nameList[1] + "_" + nameList[2] + "_" + nameList[3] + "_Layer"
+        cmds.select(Hierarchy)
+        cmds.createDisplayLayer(name=LayerName, number=1, nr=True)
+        cmds.setAttr("%s.displayType" % LayerName, 0)
+        cmds.setAttr("%s.color" % LayerName, colorIndex)
+        cmds.setAttr("%s.overrideColorRGB" % LayerName, 0, 0, 0)
+        cmds.setAttr("%s.overrideRGBColors" % LayerName, 0)
