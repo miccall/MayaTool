@@ -132,10 +132,10 @@ class LegRigging:
         self.CreateIK(self.IKJoints[3], self.IKJoints[4])
 
         # Create PoleVector Knee
-        self.PvIKHandle = self.CreateIK(self.IKJoints[0], self.IKJoints[2])
+        self.PvIKHandle = self.LegIKHandle
         self.Build_PV()
-        if self.SnappableKneefoPoleVectorKneeEnable:
-            self.BuildSnappableKnee()
+        # if self.SnappableKneefoPoleVectorKneeEnable:
+        #     self.BuildSnappableKnee()
 
     def LinkAttr(self, Chain1, chain2, Attr, Control, Control_Attr):
         for i in range(0, len(Chain1)):
@@ -156,7 +156,7 @@ class LegRigging:
         return BlendNodeList
 
     def Build_PV(self):
-        self.polePos = RiggingTool.calculate_pole_vector(self.IKJoints[0], self.IKJoints[1], self.IKJoints[2])
+        self.polePos = RT.calculate_pole_vector(self.IKJoints[0], self.IKJoints[1], self.IKJoints[2])
         self.leftKnee_Pv_LOC = cmds.spaceLocator()
         cmds.rename(self.leftKnee_Pv_LOC, "leftKnee_Pv_LOC")
         self.leftKnee_Pv_LOC = "leftKnee_Pv_LOC"
