@@ -158,15 +158,26 @@ class LegRigging:
     def Build_PV(self):
         self.polePos = RT.calculate_pole_vector(self.IKJoints[0], self.IKJoints[1], self.IKJoints[2])
         self.leftKnee_Pv_LOC = cmds.spaceLocator()
+        self.PVControl = "Knee_Pv_Ctr"
+        CT.Pyramid(self.PVControl)
         cmds.rename(self.leftKnee_Pv_LOC, "leftKnee_Pv_LOC")
         self.leftKnee_Pv_LOC = "leftKnee_Pv_LOC"
         cmds.setAttr("%s.translateX" % self.leftKnee_Pv_LOC, self.polePos[0])
         cmds.setAttr("%s.translateY" % self.leftKnee_Pv_LOC, self.polePos[1])
         cmds.setAttr("%s.translateZ" % self.leftKnee_Pv_LOC, self.polePos[2])
+        cmds.setAttr("%s.translateX" % self.PVControl, self.polePos[0])
+        cmds.setAttr("%s.translateY" % self.PVControl, self.polePos[1])
+        cmds.setAttr("%s.translateZ" % self.PVControl, self.polePos[2])
+        cmds.setAttr("%s.scaleX" % self.PVControl, 8)
+        cmds.setAttr("%s.scaleY" % self.PVControl, 8)
+        cmds.setAttr("%s.scaleZ" % self.PVControl, 8)
+        cmds.setAttr("%s.rotateX" % self.PVControl, 90)
         cmds.makeIdentity("%s" % self.leftKnee_Pv_LOC, apply=True, t=1, r=1, s=1, n=0)
+        cmds.makeIdentity("%s" % self.PVControl, apply=True, t=1, r=1, s=1, n=0)
         self.polePos = cmds.xform("leftKnee_Pv_LOC", q=1, ws=1, rp=1)
         cmds.poleVectorConstraint('%s' % self.leftKnee_Pv_LOC, self.PvIKHandle)
-        cmds.parent(self.leftKnee_Pv_LOC, self.IKControl)
+        cmds.parent(self.leftKnee_Pv_LOC, self.PVControl)
+        cmds.parent(self.PVControl, self.IKControl)
         pass
 
     def Build_NoFlip(self):

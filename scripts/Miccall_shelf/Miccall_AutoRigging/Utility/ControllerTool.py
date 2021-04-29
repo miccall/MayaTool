@@ -61,3 +61,7 @@ class ControllerTool:
         cmds.setAttr("%s.scaleY" % name, sc)
         cmds.setAttr("%s.scaleZ" % name, sc)
         cmds.makeIdentity("%s" % name, apply=True, t=1, r=1, s=1, n=0)
+
+    @staticmethod
+    def Pyramid(name):
+        mel.eval("curve -d 1 -p 0 0.5 0 -p -0.5 -0.5 0.5 -p 0.5 -0.5 0.5 -p 0 0.5 0 -p 0.5 -0.5 0.5 -p 0.5 -0.5 -0.5 -p 0 0.5 0 -p -0.5 -0.5 -0.5 -p 0.5 -0.5 -0.5 -p -0.5 -0.5 -0.5 -p -0.5 -0.5 0.5 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -n  \"%s\";" % name)
