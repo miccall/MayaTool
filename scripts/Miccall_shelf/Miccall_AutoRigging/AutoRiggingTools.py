@@ -16,19 +16,14 @@ except ImportError:
 if mayaveersion == "2022":
     import importlib
     from .Biped import Create
-
+    from .Biped import BipedRigging
+    importlib.reload(BipedRigging)
     importlib.reload(Create)
-    from .Biped import LegRigging
-
-    importlib.reload(LegRigging)
 else:
     from Biped import Create
-
+    from Biped import BipedRigging
     reload(Create)
-    from Biped import LegRigging
-
-    reload(LegRigging)
-
+    reload(BipedRigging)
 dialog = None
 
 
@@ -66,8 +61,7 @@ class AutoRigging_GUI(MayaQWidgetDockableMixin, qw.QDialog):
         pass
 
     def Test_Func(self):
-        self.Rigger = LegRigging.LegRigging(ResJNT=self.creator.LegChainNames)
-        self.Rigger.MainProcess()
+        BipedRigging.BipedRigging(self.creator)
         pass
 
     def TestCallBack(self):

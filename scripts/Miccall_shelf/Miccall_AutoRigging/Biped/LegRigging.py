@@ -354,6 +354,7 @@ class LegRigging:
         cmds.setAttr("%s.tx" % RollControlLocNames[0], Footpos[0])
         cmds.setAttr("%s.ty" % RollControlLocNames[0], 0)
         cmds.setAttr("%s.tz" % RollControlLocNames[0], Footpos[2] - 5)
+        cmds.setAttr("%s.visibility" % RollControlLocNames[0], 0)
         # 02
         loc = cmds.spaceLocator(p=(0, 0, 0))
         cmds.rename(loc[0], RollControlLocNames[1])
@@ -361,6 +362,7 @@ class LegRigging:
         cmds.setAttr("%s.tx" % RollControlLocNames[1], Ballpos[0])
         cmds.setAttr("%s.ty" % RollControlLocNames[1], Ballpos[1])
         cmds.setAttr("%s.tz" % RollControlLocNames[1], Ballpos[2])
+        cmds.setAttr("%s.visibility" % RollControlLocNames[1], 0)
         # 03
         loc = cmds.spaceLocator(p=(0, 0, 0))
         cmds.rename(loc[0], RollControlLocNames[2])
@@ -368,6 +370,7 @@ class LegRigging:
         cmds.setAttr("%s.tx" % RollControlLocNames[2], Toepos[0])
         cmds.setAttr("%s.ty" % RollControlLocNames[2], Toepos[1])
         cmds.setAttr("%s.tz" % RollControlLocNames[2], Toepos[2])
+        cmds.setAttr("%s.visibility" % RollControlLocNames[2], 0)
 
         # Adjust Hierarchy
         """
@@ -482,13 +485,14 @@ class LegRigging:
         cmds.setAttr("%s.tx" % TiltControlLocNames[0], Footpos[0] - 5)
         cmds.setAttr("%s.ty" % TiltControlLocNames[0], Footpos[1])
         cmds.setAttr("%s.tz" % TiltControlLocNames[0], Footpos[2] - 2)
+        cmds.setAttr("%s.visibility" % TiltControlLocNames[0], 0)
         # 02
         loc = cmds.spaceLocator(p=(0, 0, 0))
         cmds.rename(loc[0], TiltControlLocNames[1])
         cmds.setAttr("%s.tx" % TiltControlLocNames[1], Footpos[0] + 6)
         cmds.setAttr("%s.ty" % TiltControlLocNames[1], Footpos[1])
         cmds.setAttr("%s.tz" % TiltControlLocNames[1], Footpos[2] - 2)
-
+        cmds.setAttr("%s.visibility" % TiltControlLocNames[1], 0)
         # Adjust Hierarchy
         cmds.parent(TiltControlLocNames[0], TiltControlLocNames[1])
         cmds.parent(TiltControlLocNames[1], self.LeftRollControlList[0])
@@ -541,7 +545,7 @@ class LegRigging:
         cmds.group(self.BallIKHandle, name='ToeWiggle')
         Ballpos = cmds.xform(self.FootIKHandle, q=1, ws=1, rp=1)
         cmds.xform('ToeWiggle', piv=Ballpos, ws=True)
-
+        cmds.setAttr("%s.visibility" % 'ToeWiggle', 0)
         cmds.connectAttr("%s.Wiggle" % self.IKControl, "%s.rx" % 'ToeWiggle')
-
+        cmds.parent('ToeWiggle', self.LeftRollControlList[2])
         pass

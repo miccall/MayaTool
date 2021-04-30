@@ -19,9 +19,8 @@ class CreateBipedJoints:
         self.CalfLenght = self.LegLenght * 5 / 8
         self.FootHeight = 8
         self.Hip = None
-
-        # self.CreatTorso()
-        self.CreatLeg()
+        self.CreatTorso()
+        # self.CreatLeg()
         pass
 
     def CreatLeg(self):
@@ -59,10 +58,10 @@ class CreateBipedJoints:
         self.Hip = self.TorsoChainNames[0]
         for i in range(0, self.SplineCount):
             Spline = cmds.joint(p=(0, self.LegLenght + (i + 1) * self.splineLength + 10, 0))
-            cmds.joint(Spline, e=True, zso=True, oj='xyz', sao='yup')
             cmds.rename(Spline, "Spline%s_JNT" % str(i))
             self.TorsoChainNames.append("Spline%s_JNT" % str(i))
         cmds.select(clear=True)
+        cmds.joint(self.TorsoChainNames[0], e=True, zso=True, oj='xzy', sao='xup', ch=True)
         pass
 
     def CreatArm(self):
