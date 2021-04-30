@@ -55,17 +55,17 @@ class LegRigging:
         self.LinkIKFK()
         # IK 控制器是 一个
         self.IKControl = self.CreateIKControl()
-
         # FK 控制器是一组
         self.FKControls = self.CreateFKControl()
+
         # Layer
         self.AddToLayer("Thigh_L_FK_Ctr", 18)
         self.AddToLayer("Leg_L_IK_Ctr", 14)
         self.AddToLayer(self.IKJoints[0], 1)
         self.AddToLayer(self.FKJoints[4], 2)
 
-        # Reverse
-        self.reverseControll()
+        # Reverse Foot Roll for IK
+        self.BuildFootRollControll()
 
         # Controller Visiable
         devNode = cmds.shadingNode("plusMinusAverage", asUtility=True)
@@ -153,7 +153,7 @@ class LegRigging:
         # set IK FK visiable switch
         pass
 
-    def Build_PV(self):
+    def BuildPoleVector(self):
         self.polePos = RT.calculate_pole_vector(self.IKJoints[0], self.IKJoints[1], self.IKJoints[2])
         self.leftKnee_Pv_LOC = cmds.spaceLocator()
         self.PVControl = "Knee_Pv_Ctr"
@@ -325,7 +325,7 @@ class LegRigging:
 
         # 创建Pole vector
         self.PvIKHandle = self.LegIKHandle
-        self.Build_PV()
+        self.BuildPoleVector()
 
         return IKControlName
         pass
@@ -341,38 +341,49 @@ class LegRigging:
         cmds.setAttr("%s.overrideColorRGB" % LayerName, 0, 0, 0)
         cmds.setAttr("%s.overrideRGBColors" % LayerName, 0)
 
-    def reverseControll(self):
+    def BuildFootRollControll(self):
+        # Add Three Locator
+        RollControlLocNames = ["Heel_L_Loc", "Ball_L_Loc", "Toe_L_Loc"]
+        # 01
         loc = cmds.spaceLocator(p=(0, 0, 0))
-        cmds.rename(loc[0], "Heel_L_Loc")
+        cmds.rename(loc[0], RollControlLocNames[0])
         Footpos = cmds.xform(self.ResultJoints[2], q=1, ws=1, rp=1)
-        cmds.setAttr("Heel_L_Loc.tx", Footpos[0])
-        cmds.setAttr("Heel_L_Loc.ty", 0)
-        cmds.setAttr("Heel_L_Loc.tz", Footpos[2] - 5)
-
+        cmds.setAttr("%s.tx" % RollControlLocNames[0], Footpos[0])
+        cmds.setAttr("%s.ty" % RollControlLocNames[0], 0)
+        cmds.setAttr("%s.tz" % RollControlLocNames[0], Footpos[2] - 5)
+        # 02
         loc = cmds.spaceLocator(p=(0, 0, 0))
+        cmds.rename(loc[0], RollControlLocNames[1])
         Ballpos = cmds.xform(self.ResultJoints[3], q=1, ws=1, rp=1)
-        cmds.rename(loc[0], "Ball_L_Loc")
-        cmds.setAttr("Ball_L_Loc.tx", Ballpos[0])
-        cmds.setAttr("Ball_L_Loc.ty", Ballpos[1])
-        cmds.setAttr("Ball_L_Loc.tz", Ballpos[2])
-
+        cmds.setAttr("%s.tx" % RollControlLocNames[1], Ballpos[0])
+        cmds.setAttr("%s.ty" % RollControlLocNames[1], Ballpos[1])
+        cmds.setAttr("%s.tz" % RollControlLocNames[1], Ballpos[2])
+        # 03
         loc = cmds.spaceLocator(p=(0, 0, 0))
+        cmds.rename(loc[0], RollControlLocNames[2])
         Toepos = cmds.xform(self.ResultJoints[4], q=1, ws=1, rp=1)
-        cmds.rename(loc[0], "Toe_L_Loc")
-        cmds.setAttr("Toe_L_Loc.tx", Toepos[0])
-        cmds.setAttr("Toe_L_Loc.ty", Toepos[1])
-        cmds.setAttr("Toe_L_Loc.tz", Toepos[2])
+        cmds.setAttr("%s.tx" % RollControlLocNames[2], Toepos[0])
+        cmds.setAttr("%s.ty" % RollControlLocNames[2], Toepos[1])
+        cmds.setAttr("%s.tz" % RollControlLocNames[2], Toepos[2])
 
-        # Hirechy
-        cmds.parent("Heel_L_Loc", self.IKControl)
-        cmds.parent("Ball_L_Loc", "Toe_L_Loc")
-        cmds.parent("Toe_L_Loc", "Heel_L_Loc")
-        cmds.parent(self.LegIKHandle, "Ball_L_Loc")
-        cmds.parent(self.FootIKHandle, "Ball_L_Loc")
-        cmds.parent(self.BallIKHandle, "Heel_L_Loc")
-        # cmds.parent(self.PVControl, "Ball_L_Loc")
+        # Adjust Hierarchy
+        """
+            IKControl
+            ├ Heel_L_Loc
+            ├─ BallIKHandle
+            ├─ Toe_L_Loc
+            ├── Ball_L_Loc
+            ├─── LegIKHandle
+            ├─── FootIKHandle
+        """
+        cmds.parent(RollControlLocNames[0], self.IKControl)
+        cmds.parent(RollControlLocNames[1], RollControlLocNames[2])
+        cmds.parent(RollControlLocNames[2], RollControlLocNames[0])
+        cmds.parent(self.LegIKHandle, RollControlLocNames[1])
+        cmds.parent(self.FootIKHandle, RollControlLocNames[1])
+        cmds.parent(self.BallIKHandle, RollControlLocNames[0])
 
-        # Add Attr
+        # Add Attr for Foot Roll Control
         cmds.addAttr(self.IKControl, ln="Roll", niceName="Roll",
                      attributeType="float", defaultValue=0.0)
         cmds.setAttr("%s.%s" % (self.IKControl, "Roll"), keyable=True)
@@ -385,13 +396,19 @@ class LegRigging:
                      attributeType="float", defaultValue=90)
         cmds.setAttr("%s.%s" % (self.IKControl, "StraightAngle"), keyable=True)
 
-        clampHeel = cmds.shadingNode("clamp", asUtility=True)
-        cmds.rename(clampHeel, "Heel_L_Clamp")
-        clampHeel = "Heel_L_Clamp"
+        # Utility calculate
+        """
+            Name => XXX_XXX
+            Variable Name => Name_NodeType
+            Node Name == Name_[ L or R ]_NodeType
+        """
+        Heel_Clamp = cmds.shadingNode("clamp", asUtility=True)
+        cmds.rename(Heel_Clamp, "Heel_L_Clamp")
+        Heel_Clamp = "Heel_L_Clamp"
 
-        cmds.connectAttr("%s.Roll" % self.IKControl, "%s.inputR" % clampHeel)
-        cmds.setAttr("%s.minR" % clampHeel, -70)
-        cmds.connectAttr("%s.outputR" % clampHeel, "%s.rx" % "Heel_L_Loc")
+        cmds.connectAttr("%s.Roll" % self.IKControl, "%s.inputR" % Heel_Clamp)
+        cmds.setAttr("%s.minR" % Heel_Clamp, -70)
+        cmds.connectAttr("%s.outputR" % Heel_Clamp, "%s.rx" % RollControlLocNames[0])
 
         Ball_Zero2Bend_Clamp = cmds.shadingNode("clamp", asUtility=True)
         cmds.rename(Ball_Zero2Bend_Clamp, "Ball_Zero2Bend_Clamp")
@@ -437,7 +454,7 @@ class LegRigging:
         Foot_Roll_Mult = "Foot_Roll_Mult"
         cmds.connectAttr("%s.outValue.outValueX" % Foot_B2S_PercentRange, "%s.input1X" % Foot_Roll_Mult)
         cmds.connectAttr("%s.inputR" % Foot_B2S_Clamp, "%s.input2X" % Foot_Roll_Mult)
-        cmds.connectAttr("%s.outputX" % Foot_Roll_Mult, "%s.rx" % "Toe_L_Loc")
+        cmds.connectAttr("%s.outputX" % Foot_Roll_Mult, "%s.rx" % RollControlLocNames[2])
 
         Ball_percent_Mult = cmds.shadingNode("multiplyDivide", asUtility=True)
         cmds.rename(Ball_percent_Mult, "Ball_percent_Mult")
@@ -450,14 +467,4 @@ class LegRigging:
         Ball_Roll_Mult = "Ball_Roll_Mult"
         cmds.connectAttr("%s.outputX" % Ball_percent_Mult, "%s.input1X" % Ball_Roll_Mult)
         cmds.connectAttr("%s.Roll" % self.IKControl, "%s.input2X" % Ball_Roll_Mult)
-        cmds.connectAttr("%s.outputX" % Ball_Roll_Mult, "%s.rx" % "Ball_L_Loc")
-
-        """
-        clampToe = cmds.shadingNode("clamp", asUtility=True)
-        cmds.rename(clampToe, "Toe_L_Clamp")
-        clampToe = "Toe_L_Clamp"
-
-        cmds.connectAttr("%s.Roll" % self.IKControl, "%s.inputR" % clampToe)
-        cmds.setAttr("%s.maxR" % clampToe, 90)
-        cmds.connectAttr("%s.outputR" % clampToe, "%s.rx" % "Toe_L_Loc")
-        """
+        cmds.connectAttr("%s.outputX" % Ball_Roll_Mult, "%s.rx" % RollControlLocNames[1])

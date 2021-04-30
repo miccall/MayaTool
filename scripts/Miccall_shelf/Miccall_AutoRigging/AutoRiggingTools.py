@@ -78,11 +78,11 @@ class AutoRigging_GUI(MayaQWidgetDockableMixin, qw.QDialog):
 
     def closeEvent(self, *args):
         super(MayaDockWindow, self).closeEvent(*args)
-        print("closeEvent")
+        # print("closeEvent")
         self.close()
 
     def hideEvent(self, *args):
-        print("Close Window")
+        # print("Close Window")
         cmds.scriptJob(kill=self.myScriptJobID)
         return
 
