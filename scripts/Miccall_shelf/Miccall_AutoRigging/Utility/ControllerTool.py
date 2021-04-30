@@ -69,3 +69,27 @@ class ControllerTool:
     @staticmethod
     def IKFKSwitch(name):
         pass
+
+    @staticmethod
+    def BoxControl(name):
+        mel.eval("curve -d 1 -p 0.5 0.5 0.5 "
+                 "-p -0.5 0.5 0.5 "
+                 "-p -0.5 0.5 -0.5 "
+                 "-p 0.5 0.5 -0.5 "
+                 "-p 0.5 0.5 0.5 "
+                 "-p 0.5 -0.5 0.5 "
+                 "-p 0.5 -0.5 -0.5 "
+                 "-p 0.5 0.5 -0.5 "
+                 "-p 0.5 -0.5 -0.5 "
+                 "-p -0.5 -0.5 -0.5 "
+                 "-p -0.5 0.5 -0.5 "
+                 "-p -0.5 -0.5 -0.5 "
+                 "-p -0.5 -0.5 0.5 "
+                 "-p -0.5 0.5 0.5 "
+                 "-p -0.5 -0.5 0.5 "
+                 "-p 0.5 -0.5 0.5 "
+                 "-k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -n \"%s\";" % name)
+
+    @staticmethod
+    def CircleControl(name):
+        mel.eval("circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 1 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n  \"%s\";" % name)

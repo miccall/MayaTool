@@ -37,9 +37,14 @@ class BipedRigging:
     def __init__(self, Creator=None):
         self.ControllerTool = CT
         self.RiggingTool = RT
-        print("BipedRigging")
-        print(Creator.TorsoChainNames)
-        # self.Rigger = LegRigging.LegRigging(ResJNT=self.creator.LegChainNames)
-        # self.Rigger.MainProcess()
-        # self.Rigger = TorsoRigging.TorsoRigging(ResJNT=self.creator.TorsoChainNames)
+        self.Creator = Creator
+        self.TorsoRig()
         pass
+
+    def LegRig(self):
+        Rigger = LegRigging.LegRigging(ResJNT=self.Creator.LegChainNames)
+        Rigger.MainProcess()
+
+    def TorsoRig(self):
+        Rigger = TorsoRigging.TorsoRigging(ResJNT=self.Creator.TorsoChainNames)
+        Rigger.MainProcess()
