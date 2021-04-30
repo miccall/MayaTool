@@ -64,8 +64,10 @@ class LegRigging:
         self.AddToLayer(self.IKJoints[0], 1)
         self.AddToLayer(self.FKJoints[4], 2)
 
-        # Reverse Foot Roll for IK
-        self.BuildFootRollControll()
+        # Reverse Foot Roll & Tilt for IK
+        self.BuildFootRollController()
+        self.BuildFootTiltController()
+        self.BuildFootLeanSpinWiggleController()
 
         # Controller Visiable
         devNode = cmds.shadingNode("plusMinusAverage", asUtility=True)
@@ -341,9 +343,10 @@ class LegRigging:
         cmds.setAttr("%s.overrideColorRGB" % LayerName, 0, 0, 0)
         cmds.setAttr("%s.overrideRGBColors" % LayerName, 0)
 
-    def BuildFootRollControll(self):
+    def BuildFootRollController(self):
         # Add Three Locator
-        RollControlLocNames = ["Heel_L_Loc", "Ball_L_Loc", "Toe_L_Loc"]
+        self.LeftRollControlList = ["Heel_L_Loc", "Ball_L_Loc", "Toe_L_Loc"]
+        RollControlLocNames = self.LeftRollControlList
         # 01
         loc = cmds.spaceLocator(p=(0, 0, 0))
         cmds.rename(loc[0], RollControlLocNames[0])
@@ -468,3 +471,77 @@ class LegRigging:
         cmds.connectAttr("%s.outputX" % Ball_percent_Mult, "%s.input1X" % Ball_Roll_Mult)
         cmds.connectAttr("%s.Roll" % self.IKControl, "%s.input2X" % Ball_Roll_Mult)
         cmds.connectAttr("%s.outputX" % Ball_Roll_Mult, "%s.rx" % RollControlLocNames[1])
+
+    def BuildFootTiltController(self):
+        # Add Three Locator
+        TiltControlLocNames = ["FootInner_L_Loc", "FootOutter_L_Loc"]
+        Footpos = cmds.xform(self.ResultJoints[3], q=1, ws=1, rp=1)
+        # 01
+        loc = cmds.spaceLocator(p=(0, 0, 0))
+        cmds.rename(loc[0], TiltControlLocNames[0])
+        cmds.setAttr("%s.tx" % TiltControlLocNames[0], Footpos[0] - 5)
+        cmds.setAttr("%s.ty" % TiltControlLocNames[0], Footpos[1])
+        cmds.setAttr("%s.tz" % TiltControlLocNames[0], Footpos[2] - 2)
+        # 02
+        loc = cmds.spaceLocator(p=(0, 0, 0))
+        cmds.rename(loc[0], TiltControlLocNames[1])
+        cmds.setAttr("%s.tx" % TiltControlLocNames[1], Footpos[0] + 6)
+        cmds.setAttr("%s.ty" % TiltControlLocNames[1], Footpos[1])
+        cmds.setAttr("%s.tz" % TiltControlLocNames[1], Footpos[2] - 2)
+
+        # Adjust Hierarchy
+        cmds.parent(TiltControlLocNames[0], TiltControlLocNames[1])
+        cmds.parent(TiltControlLocNames[1], self.LeftRollControlList[0])
+        cmds.parent(self.LeftRollControlList[2], TiltControlLocNames[0])
+        cmds.parent(self.BallIKHandle, TiltControlLocNames[0])
+
+        # Add Attr for Foot Roll Control
+        cmds.addAttr(self.IKControl, ln="Tilt", niceName="Tilt",
+                     attributeType="float", defaultValue=0.0)
+        cmds.setAttr("%s.%s" % (self.IKControl, "Tilt"), keyable=True)
+
+        # Utility calculate
+        FootOutter_Clamp = cmds.shadingNode("clamp", asUtility=True)
+        cmds.rename(FootOutter_Clamp, "FootOutter_L_Clamp")
+        FootOutter_Clamp = "FootOutter_L_Clamp"
+
+        cmds.connectAttr("%s.Tilt" % self.IKControl, "%s.inputR" % FootOutter_Clamp)
+        cmds.setAttr("%s.minR" % FootOutter_Clamp, -90)
+        cmds.connectAttr("%s.outputR" % FootOutter_Clamp, "%s.rz" % TiltControlLocNames[1])
+
+        FootInner_Clamp = cmds.shadingNode("clamp", asUtility=True)
+        cmds.rename(FootInner_Clamp, "FootInner_L_Clamp")
+        FootInner_Clamp = "FootInner_L_Clamp"
+
+        cmds.connectAttr("%s.Tilt" % self.IKControl, "%s.inputR" % FootInner_Clamp)
+        cmds.setAttr("%s.maxR" % FootInner_Clamp, 90)
+        cmds.connectAttr("%s.outputR" % FootInner_Clamp, "%s.rz" % TiltControlLocNames[0])
+
+        pass
+
+    def BuildFootLeanSpinWiggleController(self):
+        # Add Attr for Toe Lean and Spin Control
+        cmds.addAttr(self.IKControl, ln="Lean", niceName="Lean",
+                     attributeType="float", defaultValue=0.0)
+        cmds.setAttr("%s.%s" % (self.IKControl, "Lean"), keyable=True)
+
+        cmds.addAttr(self.IKControl, ln="Spin", niceName="Toe Spin",
+                     attributeType="float", defaultValue=0.0)
+        cmds.setAttr("%s.%s" % (self.IKControl, "Spin"), keyable=True)
+
+        cmds.connectAttr("%s.Lean" % self.IKControl, "%s.rz" % self.LeftRollControlList[1])
+        cmds.connectAttr("%s.Spin" % self.IKControl, "%s.ry" % self.LeftRollControlList[2])
+        cmds.setAttr("%s.rotateOrder" % self.LeftRollControlList[2], 2)
+
+        # Add Attr for Toe Wiggle Control
+        cmds.addAttr(self.IKControl, ln="Wiggle", niceName="Toe Wiggle",
+                     attributeType="float", defaultValue=0.0)
+        cmds.setAttr("%s.%s" % (self.IKControl, "Wiggle"), keyable=True)
+
+        cmds.group(self.BallIKHandle, name='ToeWiggle')
+        Ballpos = cmds.xform(self.FootIKHandle, q=1, ws=1, rp=1)
+        cmds.xform('ToeWiggle', piv=Ballpos, ws=True)
+
+        cmds.connectAttr("%s.Wiggle" % self.IKControl, "%s.rx" % 'ToeWiggle')
+
+        pass
