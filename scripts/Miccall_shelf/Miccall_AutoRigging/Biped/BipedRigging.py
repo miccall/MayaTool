@@ -23,8 +23,8 @@ if mayaveersion == "2022":
 else:
     from Miccall_shelf.Miccall_AutoRigging.Utility import ControllerTool
     from Miccall_shelf.Miccall_AutoRigging.Utility import RiggingTool
-    from Biped import LegRigging
-    from Biped import TorsoRigging
+    import LegRigging
+    import TorsoRigging
     reload(ControllerTool)
     reload(RiggingTool)
     reload(LegRigging)
