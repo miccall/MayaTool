@@ -41,6 +41,7 @@ class TorsoRigging:
         self.TorsoIKCurve = "Torso_IK_Curve"
         self.IKControlJoints = ["Torso_IK_Start_CtrJNT", "Torso_IK_End_CtrJNT"]
         self.IKControls = ["Torso_IK_Start_Ctr", "Torso_IK_End_Ctr"]
+        self.FKControls = []
         self.HipGRP = "Hip_Const_GRP"
         self.ShoulderGRP = "Shoulder_Const_GRP"
 
@@ -132,7 +133,19 @@ class TorsoRigging:
         for i in range(1, self.TorseSplineCount - 1):
             print(self.FKJoints[i])
             cmds.setAttr("%s.rotateOrder" % self.FKJoints[i], 1)
-            CT.CircleControl("%s_Ctr" % self.FKJoints[i])
+            name = "%s_Ctr" % self.FKJoints[i][0:-4]
+            CT.CircleControl(name)
             # todo : xform
+            cmds.setAttr("%s.scaleX" % name, 20)
+            cmds.setAttr("%s.scaleY" % name, 20)
+            cmds.setAttr("%s.scaleZ" % name, 20)
+            cmds.makeIdentity("%s" % name, apply=True, t=1, r=1, s=1, n=0)
+            cmds.select("%sShape" % name)
+            cmds.select("%s" % self.FKJoints[i], add=True)
+            mel.eval("parent -r -s")
+            cmds.delete(name)
+            cmds.rename(self.FKJoints[i], name)
+            self.FKControls.append(name)
+
         cmds.parentConstraint(self.FKJoints[0], self.HipGRP, mo=True, w=1)
         cmds.parentConstraint(self.FKJoints[self.TorseSplineCount - 1], self.ShoulderGRP, mo=True, w=1)
