@@ -44,6 +44,12 @@ class TorsoRigging:
         self.FKControls = []
         self.HipGRP = "Hip_Const_GRP"
         self.ShoulderGRP = "Shoulder_Const_GRP"
+        self.BodyGRP = "Body_GRP"
+        self.BaseControl = "Base_Ctr"
+        self.BodyIKGRP = "Body_IK_GRP"
+        self.BodyFKGRP = "Body_FK_GRP"
+        self.RootTransform = "Root_Transform"
+        self.RootControl = "Root_Ctr"
 
     def MainProcess(self):
         # 创建一条 IK 的骨骼链
@@ -54,6 +60,13 @@ class TorsoRigging:
         self.CreateIKControl()
         # FK 控制器
         self.CreateFKControl()
+        self.LinkRes()
+        # Main
+        self.CreateBaseControl()
+        # Layer
+        self.AddToLayer(self.BaseControl, 13)
+        self.AddToLayer(self.BodyIKGRP, 17)
+        self.AddToLayer(self.BodyFKGRP, 18)
 
     def CreatChain(self, Attr):
         NewChainList = cmds.duplicate(self.ResultJoints[0])
@@ -89,7 +102,7 @@ class TorsoRigging:
         cmds.rename(IKHandleControl[self.TorseSplineCount - 1], self.IKControlJoints[1])
         influences = [self.IKControlJoints[0], self.IKControlJoints[1]]
         scls = cmds.skinCluster(influences, self.TorsoIKCurve, n='Spine_skinCluster', tsb=True, bm=0, sm=0, nw=1)[0]
-
+        cmds.setAttr("%s.inheritsTransform" % self.TorsoIKCurve, 0)
         # IK Controller
         CT.BoxControl(self.IKControls[0])
         CT.BoxControl(self.IKControls[1])
@@ -126,6 +139,16 @@ class TorsoRigging:
 
         cmds.group(self.IKControls[0], n=self.HipGRP)
         cmds.group(self.IKControls[1], n=self.ShoulderGRP)
+        cmds.group(self.IKControls[0], self.ShoulderGRP, self.HipGRP, self.TorsoIKHandle, self.TorsoIKCurve,
+                   self.IKControlJoints[0], self.IKControlJoints[1], self.IKJoints[0], n=self.BodyIKGRP)
+
+        cmds.setAttr("%s.sx" % self.IKControls[0], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sy" % self.IKControls[0], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sz" % self.IKControls[0], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sx" % self.IKControls[1], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sy" % self.IKControls[1], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sz" % self.IKControls[1], lock=True, keyable=False, channelBox=False)
+
         pass
 
     def CreateFKControl(self):
@@ -145,7 +168,97 @@ class TorsoRigging:
             mel.eval("parent -r -s")
             cmds.delete(name)
             cmds.rename(self.FKJoints[i], name)
+            cmds.setAttr("%s.sx" % name, lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.sy" % name, lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.sz" % name, lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.tx" % name, lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.ty" % name, lock=True, keyable=False, channelBox=False)
+            cmds.setAttr("%s.tz" % name, lock=True, keyable=False, channelBox=False)
             self.FKControls.append(name)
 
         cmds.parentConstraint(self.FKJoints[0], self.HipGRP, mo=True, w=1)
         cmds.parentConstraint(self.FKJoints[self.TorseSplineCount - 1], self.ShoulderGRP, mo=True, w=1)
+
+        cmds.setAttr("%s.sx" % self.FKJoints[0], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sy" % self.FKJoints[0], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sz" % self.FKJoints[0], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.tx" % self.FKJoints[0], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.ty" % self.FKJoints[0], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.tz" % self.FKJoints[0], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.rx" % self.FKJoints[0], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.ry" % self.FKJoints[0], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.rz" % self.FKJoints[0], lock=True, keyable=False, channelBox=False)
+
+        cmds.setAttr("%s.sx" % self.FKJoints[self.TorseSplineCount - 1], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sy" % self.FKJoints[self.TorseSplineCount - 1], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sz" % self.FKJoints[self.TorseSplineCount - 1], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.tx" % self.FKJoints[self.TorseSplineCount - 1], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.ty" % self.FKJoints[self.TorseSplineCount - 1], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.tz" % self.FKJoints[self.TorseSplineCount - 1], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.rx" % self.FKJoints[self.TorseSplineCount - 1], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.ry" % self.FKJoints[self.TorseSplineCount - 1], lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.rz" % self.FKJoints[self.TorseSplineCount - 1], lock=True, keyable=False, channelBox=False)
+
+        cmds.group(self.FKJoints[0], n=self.BodyFKGRP)
+
+    def LinkRes(self):
+        # worldMatrix[0] pSphere1.offsetParentMatrix
+        # cmds.connectAttr('%s.worldMatrix[0]' % self.IKJoints[0], '%s.offsetParentMatrix' % self.ResultJoints[0], f=True)
+        # """
+        for i in range(0, len(self.ResultJoints)):
+            # cmds.connectAttr('%s.rotate' % self.IKJoints[i], '%s.rotate' % self.ResultJoints[i], f=True)
+            # cmds.connectAttr('%s.translate' % self.IKJoints[i], '%s.translate' % self.ResultJoints[i], f=True)
+            # cmds.connectAttr('%s.worldMatrix[0]' % self.IKJoints[0], '%s.offsetParentMatrix' % self.ResultJoints[0], f=True)
+            cmds.parentConstraint(self.IKJoints[i], self.ResultJoints[i], mo=True, w=1)
+        # """
+
+    def CreateBaseControl(self):
+        CT.FourArror(self.BaseControl)
+        startpos = cmds.xform(self.ResultJoints[0], q=1, ws=1, rp=1)
+        cmds.setAttr("%s.rotateOrder" % self.BaseControl, 2)
+        cmds.setAttr("%s.sx" % self.BaseControl, 15)
+        cmds.setAttr("%s.sy" % self.BaseControl, 15)
+        cmds.setAttr("%s.sz" % self.BaseControl, 15)
+        cmds.setAttr("%s.tx" % self.BaseControl, startpos[0])
+        cmds.setAttr("%s.ty" % self.BaseControl, startpos[1])
+        cmds.setAttr("%s.tz" % self.BaseControl, startpos[2])
+        cmds.makeIdentity("%s" % self.BaseControl, apply=True, t=1, r=1, s=1, n=0)
+        cmds.setAttr("%s.sx" % self.BaseControl, lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sy" % self.BaseControl, lock=True, keyable=False, channelBox=False)
+        cmds.setAttr("%s.sz" % self.BaseControl, lock=True, keyable=False, channelBox=False)
+        # GRP OTHER
+        cmds.group(self.BodyIKGRP, self.BodyFKGRP, n=self.BodyGRP)
+        cmds.parentConstraint(self.BaseControl, self.BodyGRP, mo=True, w=1)
+        # Root
+        cmds.group(self.BodyGRP, self.BaseControl, n=self.RootTransform)
+        cmds.setAttr("%s.rotateOrder" % self.RootTransform, 2)
+        CT.FourArror(self.RootControl)
+        cmds.setAttr("%s.sx" % self.RootControl, 20)
+        cmds.setAttr("%s.sy" % self.RootControl, 20)
+        cmds.setAttr("%s.sz" % self.RootControl, 20)
+        cmds.makeIdentity("%s" % self.RootControl, apply=True, t=1, r=1, s=1, n=0)
+        cmds.select("%sShape" % self.RootControl)
+        cmds.select("%s" % self.RootTransform, add=True)
+        mel.eval("parent -r -s")
+        cmds.delete(self.RootControl)
+        cmds.rename(self.RootTransform, self.RootControl)
+        cmds.setAttr("%sShape.overrideEnabled" % self.RootControl, 1)
+        cmds.setAttr("%sShape.overrideRGBColors" % self.RootControl, 1)
+        cmds.setAttr("%sShape.overrideColorR" % self.RootControl, 1)
+        cmds.setAttr("%sShape.overrideColorG" % self.RootControl, 0)
+        cmds.setAttr("%sShape.overrideColorB" % self.RootControl, 1)
+        pass
+
+    def AddToLayer(self, Hierarchy, colorIndex=0):
+        # Hierarchy = "Thigh_L_FK_Ctr"
+        nameList = Hierarchy.split("_")
+        LayerName = ""
+        for i in range(0, len(nameList) - 1):
+            LayerName += nameList[i] + "_"
+        LayerName += "Layer"
+        cmds.select(Hierarchy)
+        cmds.createDisplayLayer(name=LayerName, number=1, nr=True)
+        cmds.setAttr("%s.displayType" % LayerName, 0)
+        cmds.setAttr("%s.color" % LayerName, colorIndex)
+        cmds.setAttr("%s.overrideColorRGB" % LayerName, 0, 0, 0)
+        cmds.setAttr("%s.overrideRGBColors" % LayerName, 0)

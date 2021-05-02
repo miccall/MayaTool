@@ -7,6 +7,12 @@ import maya.mel as mel
 import sys
 
 
+def ReSetShapeName(curvename):
+    for shape in cmds.listRelatives(curvename, s=True, f=True) or []:
+        print(shape)
+        cmds.rename(shape, "%sShape" % curvename)
+
+
 class ControllerTool:
     @staticmethod
     def pole_vector_Ctrl():
@@ -64,7 +70,8 @@ class ControllerTool:
 
     @staticmethod
     def Pyramid(name):
-        mel.eval("curve -d 1 -p 0 0.5 0 -p -0.5 -0.5 0.5 -p 0.5 -0.5 0.5 -p 0 0.5 0 -p 0.5 -0.5 0.5 -p 0.5 -0.5 -0.5 -p 0 0.5 0 -p -0.5 -0.5 -0.5 -p 0.5 -0.5 -0.5 -p -0.5 -0.5 -0.5 -p -0.5 -0.5 0.5 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -n  \"%s\";" % name)
+        mel.eval(
+            "curve -d 1 -p 0 0.5 0 -p -0.5 -0.5 0.5 -p 0.5 -0.5 0.5 -p 0 0.5 0 -p 0.5 -0.5 0.5 -p 0.5 -0.5 -0.5 -p 0 0.5 0 -p -0.5 -0.5 -0.5 -p 0.5 -0.5 -0.5 -p -0.5 -0.5 -0.5 -p -0.5 -0.5 0.5 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -n  \"%s\";" % name)
 
     @staticmethod
     def IKFKSwitch(name):
@@ -89,7 +96,14 @@ class ControllerTool:
                  "-p -0.5 -0.5 0.5 "
                  "-p 0.5 -0.5 0.5 "
                  "-k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -n \"%s\";" % name)
+        ReSetShapeName(name)
 
     @staticmethod
     def CircleControl(name):
         mel.eval("circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 1 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1 -n  \"%s\";" % name)
+
+    @staticmethod
+    def FourArror(name):
+        mel.eval(
+            "curve -d 1 -p 1 0 -3 -p 2 0 -3 -p 0 0 -5 -p -2 0 -3 -p -1 0 -3 -p -1 0 -1 -p -3 0 -1 -p -3 0 -2 -p -5 0 0 -p -3 0 2 -p -3 0 1 -p -1 0 1 -p -1 0 3 -p -2 0 3 -p 0 0 5 -p 2 0 3 -p 1 0 3 -p 1 0 1 -p 3 0 1 -p 3 0 2 -p 5 0 0 -p 3 0 -2 -p 3 0 -1 -p 1 0 -1 -p 1 0 -3 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9 -k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -k 16 -k 17 -k 18 -k 19 -k 20 -k 21 -k 22 -k 23 -k 24 -n  \"%s\";" % name)
+        ReSetShapeName(name)

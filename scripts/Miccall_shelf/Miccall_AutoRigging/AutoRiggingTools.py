@@ -68,7 +68,7 @@ class AutoRigging_GUI(MayaQWidgetDockableMixin, qw.QDialog):
         objs = cmds.ls(sl=True)
         if len(objs) > 0:
             current = objs[0]
-            print("%s : ss " % current)
+            # print("%s : ss " % current)
 
     def closeEvent(self, *args):
         super(MayaDockWindow, self).closeEvent(*args)

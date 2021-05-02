@@ -149,12 +149,6 @@ class LegRigging:
         cmds.parent("%s_HDL" % start, self.IKControl)
         return "%s_HDL" % start
 
-    def MainProcess2(self):
-        # if self.SnappableKneefoPoleVectorKneeEnable:
-        #     self.BuildSnappableKnee()
-        # set IK FK visiable switch
-        pass
-
     def BuildPoleVector(self):
         self.polePos = RT.calculate_pole_vector(self.IKJoints[0], self.IKJoints[1], self.IKJoints[2])
         self.leftKnee_Pv_LOC = cmds.spaceLocator()
