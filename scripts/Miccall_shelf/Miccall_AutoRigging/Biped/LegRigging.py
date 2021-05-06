@@ -45,13 +45,16 @@ class LegRigging:
 
     def MainProcess(self):
         # 创建一条 IK 的骨骼链
-        self.IKJoints = self.CreatChain("IK", False)
+        self.IKJoints = self.GetRigChain("IK")
         # 创建一条 FK 的骨骼链
-        self.FKJoints = self.CreatChain("FK", False)
+        self.FKJoints = self.GetRigChain("FK")
+
         # 创建一个 Base Control
         self.LegControl = self.CreateLegControl()
+
         # 混合 IK 和 FK
         self.IKFKSwitch()
+
         self.LinkIKFK()
         # IK 控制器是 一个
         self.IKControl = self.CreateIKControl()
@@ -81,14 +84,26 @@ class LegRigging:
         cmds.connectAttr("%s.output1D" % devNode, "%s.visibility" % self.IKJoints[0], f=True)
         pass
 
+    def GetRigChain(self, Attr):
+        Chain = []
+        for JNT in self.ResultJoints:
+            JointNameSplits = JNT.split("_")
+            prefix = ""
+            for i in range(0, len(JointNameSplits) - 1):
+                prefix += JointNameSplits[i] + "_"
+            prefix += "%s" % Attr + "_JNT"
+            Chain.append(prefix)
+        return Chain
+
     def CreatChain(self, Attr, OnlyLeg=False):
         """
             创建腿部的复制骨骼链
             可以只创建腿而不包括脚
         """
-        NewChainList = cmds.duplicate(self.ResultJoints[0])
+        NewChainList = cmds.duplicate(self.ResultJoints, upstreamNodes=False, parentOnly=True)
         realname = ""
         realnamelist = []
+        cmds.parent(NewChainList[0], world=True)
         for name in NewChainList:
             realname += "|%s" % name
             realnamelist.append(realname)

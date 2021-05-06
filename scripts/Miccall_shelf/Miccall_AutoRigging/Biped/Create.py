@@ -8,6 +8,7 @@ import maya.mel as mel
 
 class CreateBipedJoints:
     def __init__(self):
+        self.root = "Hip_JNT"
         self.TorsoChainNames = ['Hip_JNT']
         self.LegChainNames = ['Thigh_L_JNT', 'Shin_L_JNT', 'Foot_L_JNT', 'Ball_L_JNT', 'Toe_L_JNT']
         self.SplineCount = 3
@@ -20,7 +21,7 @@ class CreateBipedJoints:
         self.FootHeight = 8
         self.Hip = None
         self.CreatTorso()
-        # self.CreatLeg()
+        self.CreatLeg()
         pass
 
     def CreatLeg(self):

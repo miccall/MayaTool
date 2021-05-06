@@ -5,19 +5,23 @@ import maya.cmds as cmds
 import pymel.core as pm
 import maya.mel as mel
 import sys
+
 mayaveersion = cmds.about(version=True)
 
 if mayaveersion == "2022":
     import importlib
+
     sys.path.append("..")
     from Miccall_shelf.Miccall_AutoRigging.Utility import ControllerTool
     from Miccall_shelf.Miccall_AutoRigging.Utility import RiggingTool
+
     importlib.reload(ControllerTool)
     importlib.reload(RiggingTool)
     from Miccall_shelf.Miccall_AutoRigging.Utility.ControllerTool import ControllerTool as CT
     from Miccall_shelf.Miccall_AutoRigging.Utility.RiggingTool import RiggingTool as RT
     from . import LegRigging
     from . import TorsoRigging
+
     importlib.reload(LegRigging)
     importlib.reload(TorsoRigging)
 else:
@@ -25,6 +29,7 @@ else:
     from Miccall_shelf.Miccall_AutoRigging.Utility import RiggingTool
     import LegRigging
     import TorsoRigging
+
     reload(ControllerTool)
     reload(RiggingTool)
     reload(LegRigging)
@@ -38,7 +43,10 @@ class BipedRigging:
         self.ControllerTool = CT
         self.RiggingTool = RT
         self.Creator = Creator
+        self.RiggingTool.CreateDuplicate(self.Creator.root, "IK")
+        self.RiggingTool.CreateDuplicate(self.Creator.root, "FK")
         self.TorsoRig()
+        self.LegRig()
         pass
 
     def LegRig(self):

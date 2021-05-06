@@ -45,3 +45,15 @@ class RiggingTool:
         poleVector = (midPointer.normal() * distance) + vec2
 
         return poleVector
+
+    @staticmethod
+    def CreateDuplicate(Root, Attr):
+        NewChainList = cmds.duplicate(Root, renameChildren=True)
+        for JNT in NewChainList:
+            JointNameSplits = JNT.split("_")
+            prefix = ""
+            for i in range(0, len(JointNameSplits) - 1):
+                prefix += JointNameSplits[i] + "_"
+            prefix += "%s" % Attr + "_JNT"
+            cmds.rename(JNT, prefix)
+        pass

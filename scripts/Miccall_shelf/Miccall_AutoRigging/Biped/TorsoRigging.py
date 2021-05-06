@@ -53,23 +53,26 @@ class TorsoRigging:
 
     def MainProcess(self):
         # 创建一条 IK 的骨骼链
-        self.IKJoints = self.CreatChain("IK")
+        self.IKJoints = self.GetRigChain("IK")
         # 创建一条 FK 的骨骼链
-        self.FKJoints = self.CreatChain("FK")
+        self.FKJoints = self.GetRigChain("FK")
         # IK 控制器
         self.CreateIKControl()
+        """
         # FK 控制器
         self.CreateFKControl()
         self.LinkRes()
+        
         # Main
         self.CreateBaseControl()
         # Layer
         self.AddToLayer(self.BaseControl, 13)
         self.AddToLayer(self.BodyIKGRP, 17)
         self.AddToLayer(self.BodyFKGRP, 18)
+        """
 
     def CreatChain(self, Attr):
-        NewChainList = cmds.duplicate(self.ResultJoints[0])
+        NewChainList = cmds.duplicate(self.ResultJoints, parentOnly=True)
         realname = ""
         realnamelist = []
         for name in NewChainList:
@@ -86,6 +89,17 @@ class TorsoRigging:
             realnamelist[i] = newChainName
         realnamelist.reverse()
         return realnamelist
+
+    def GetRigChain(self, Attr):
+        Chain = []
+        for JNT in self.ResultJoints:
+            JointNameSplits = JNT.split("_")
+            prefix = ""
+            for i in range(0, len(JointNameSplits) - 1):
+                prefix += JointNameSplits[i] + "_"
+            prefix += "%s" % Attr + "_JNT"
+            Chain.append(prefix)
+        return Chain
 
     def CreateIKControl(self):
         # Spline IK
