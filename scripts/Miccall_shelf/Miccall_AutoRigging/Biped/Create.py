@@ -151,6 +151,36 @@ class CreateBipedJoints:
         cmds.setAttr((node1 + "_" + node2 + "_Connector.sz"), lock=True, keyable=False, channelBox=False)
         cmds.setAttr((node1 + "_" + node2 + "_Connector.v"), lock=True, keyable=False, channelBox=False)
 
+    def CreatePrixyNode(self, name, mScale=None, mMvoe=None, lScale=None, mRotate=None, PC=None, isConnect=False,
+                        isParent=False):
+
+        if mScale is None:
+            mScale = [1, 1, 1]
+
+        if mMvoe is None:
+            mMvoe = [0, 0, 0]
+
+        if mRotate is None:
+            mRotate = [0, 0, 0]
+
+        self.ProxyBase(name)
+        if PC is not None:
+            PCons = cmds.pointConstraint(PC, name)
+            cmds.delete(PCons)
+        cmds.scale(mScale[0], mScale[1], mScale[2], name, r=True)
+        cmds.move(mMvoe[0], mMvoe[1], mMvoe[2], name, r=True, os=True, wd=True)
+        cmds.rotate(mRotate[0], mRotate[1], mRotate[2], name)
+        cmds.makeIdentity(name, apply=True, t=1, r=1, s=1)
+        if lScale is not None:
+            cmds.setAttr("%sSnapShape.localScaleX" % name, lScale[0])
+            cmds.setAttr("%sSnapShape.localScaleY" % name, lScale[1])
+            cmds.setAttr("%sSnapShape.localScaleZ" % name, lScale[2])
+        if isConnect and PC is not None:
+            self.ProxyConnectors(PC, name)
+        if isParent and PC is not None:
+            cmds.parent(name, PC)
+        pass
+
     def CreateProxies(self):
         thumbsOn = True
         fingersNum = 5
@@ -171,32 +201,23 @@ class CreateBipedJoints:
         # todo : SET UNITS TO CENTIMETERS
         # todo :  Close NODE EDITOR
         # Joint Base
-        Main = cmds.circle(c=(0, 0, 0), nr=(0, 1, 0), sw=360, r=8, d=3, ut=0, tol=0.01, s=8, ch=0)
-        cmds.rename(Main[0], self.Main)
+        Main = cmds.circle(n=self.Main, c=(0, 0, 0), nr=(0, 1, 0), sw=360, r=8, d=3, ut=0, tol=0.01, s=8, ch=0)
 
         # Root
-        self.ProxyBase(self.Proxies_Root)
-        cmds.scale(1.6, 1.6, 1.6, self.Proxies_Root, r=True)
-        cmds.move(0, 15.25, 0, self.Proxies_Root, r=True, os=True, wd=True)
-        cmds.makeIdentity("%s" % self.Proxies_Root, apply=True, t=1, r=1, s=1)
-        cmds.setAttr("%sSnapShape.localScaleX" % self.Proxies_Root, 0.4)
-        cmds.setAttr("%sSnapShape.localScaleY" % self.Proxies_Root, 0.4)
-        cmds.setAttr("%sSnapShape.localScaleZ" % self.Proxies_Root, 0.4)
+        self.CreatePrixyNode(name=self.Proxies_Root,
+                             mScale=[1.6, 1.6, 1.6],
+                             mMvoe=[0, 15.25, 0],
+                             lScale=[0.4, 0.4, 0.4])
 
         # Top
-        self.ProxyBase(self.Proxies_SpineTop)
-        PCons = cmds.pointConstraint(self.Proxies_Root, self.Proxies_SpineTop)
-        cmds.delete(PCons)
-        cmds.move(0, 6.6, 0, self.Proxies_SpineTop, r=True, os=True, wd=True)
-        cmds.scale(1.6, 1.6, 1.6, self.Proxies_SpineTop, r=True)
-        cmds.makeIdentity("%s" % self.Proxies_SpineTop, apply=True, t=1, r=1, s=1)
-        cmds.setAttr("%sSnapShape.localScaleX" % self.Proxies_SpineTop, 0.4)
-        cmds.setAttr("%sSnapShape.localScaleY" % self.Proxies_SpineTop, 0.4)
-        cmds.setAttr("%sSnapShape.localScaleZ" % self.Proxies_SpineTop, 0.4)
+        self.CreatePrixyNode(name=self.Proxies_SpineTop,
+                             PC=self.Proxies_Root,
+                             mScale=[1.6, 1.6, 1.6],
+                             mMvoe=[0, 6.6, 0],
+                             lScale=[0.4, 0.4, 0.4])
 
         # Aim Locator
-        loc = cmds.spaceLocator()
-        cmds.rename(loc[0], self.Proxies_SpineOrientLocator)
+        loc = cmds.spaceLocator(n=self.Proxies_SpineOrientLocator)
         cmds.parent(self.Proxies_SpineOrientLocator, self.Main)
         cmds.pointConstraint(self.Proxies_Root, self.Proxies_SpineOrientLocator)
         cmds.aimConstraint(self.Proxies_SpineTop, self.Proxies_SpineOrientLocator, aimVector=[0, 1, 0],
@@ -223,20 +244,18 @@ class CreateBipedJoints:
             else:
                 self.ProxyConnectors("Proxies_Spine_%s%s" % (nPad, i), "Proxies_Spine_%s%s" % (nPad, i - 1))
             i2 = i2 - 1
-
         self.ProxyConnectors("Proxies_Spine_%s%s" % (nPad, spineNum - 1), self.Proxies_SpineTop)
 
         cmds.select(self.spineProxies)
         cmds.pickWalk(d="up")
         spineProxiesG = cmds.ls(sl=True)
 
-        # Neck
-        self.ProxyBase(self.Proxies_Head)
-        PCons = cmds.pointConstraint(self.Proxies_SpineTop, self.Proxies_Head)
-        cmds.delete(PCons)
-        cmds.move(0, 2, 0, self.Proxies_Head, r=True, os=True, wd=True)
-        cmds.scale(1.25, 1.25, 1.25, self.Proxies_Head, r=True)
-        cmds.makeIdentity("%s" % self.Proxies_Head, apply=True, t=1, r=1, s=1)
+        # Head
+        self.CreatePrixyNode(name=self.Proxies_Head,
+                             PC=self.Proxies_SpineTop,
+                             mMvoe=[0, 2, 0],
+                             mScale=[1.25, 1.25, 1.25])
+
         # CREATE AIM LOCATOR TO ORIENT NECK PROXIES
         cmds.spaceLocator(n=self.Proxies_NeckOrientLocator)
         cmds.parent(self.Proxies_NeckOrientLocator, self.Main)
@@ -245,6 +264,7 @@ class CreateBipedJoints:
                            upVector=[1, 0, 0], worldUpType="vector", worldUpVector=[1, 0, 0])
         cmds.setAttr("%s.visibility" % self.Proxies_NeckOrientLocator, 0)
 
+        # Neck
         self.neckProxies = []
         i2 = neckNum - 1
         nPad = "0"
@@ -269,162 +289,121 @@ class CreateBipedJoints:
         cmds.select(self.neckProxies)
         cmds.pickWalk(d="up")
         neckProxiesG = cmds.ls(sl=True)
-
         self.ProxyConnectors("Proxies_Neck_%s%s" % (nPad, neckNum - 1), self.Proxies_Head)
 
         # Jaw
-        self.ProxyBase(self.Proxies_Jaw)
-        PCons = cmds.pointConstraint(self.Proxies_Head, self.Proxies_Jaw)
-        cmds.delete(PCons)
-        cmds.move(0, 0.83, 0.38, self.Proxies_Jaw, r=True, os=True, wd=True)
-        cmds.makeIdentity(self.Proxies_Jaw, apply=True, t=1, r=1, s=1)
-        self.ProxyConnectors(self.Proxies_Head, self.Proxies_Jaw)
+        self.CreatePrixyNode(self.Proxies_Jaw,
+                             PC=self.Proxies_Head,
+                             mMvoe=[0, 0.83, 0.38],
+                             isConnect=True)
 
-        self.ProxyBase(self.Proxies_JawTip)
-        PCons = cmds.pointConstraint(self.Proxies_Jaw, self.Proxies_JawTip)
-        cmds.delete(PCons)
-        cmds.move(0, -0.83, 1.52, self.Proxies_JawTip, r=True, os=True, wd=True)
-        cmds.makeIdentity(self.Proxies_JawTip, apply=True, t=1, r=1, s=1)
-        self.ProxyConnectors(self.Proxies_Jaw, self.Proxies_JawTip)
+        self.CreatePrixyNode(self.Proxies_JawTip,
+                             PC=self.Proxies_Jaw,
+                             mMvoe=[0, -0.83, 1.52],
+                             isConnect=True)
 
-        self.ProxyBase(self.Proxies_HeadTip)
-        PCons = cmds.pointConstraint(self.Proxies_Head, self.Proxies_HeadTip)
-        cmds.delete(PCons)
-        cmds.move(0, 3.38, 0, self.Proxies_HeadTip, r=True, os=True, wd=True)
-        cmds.makeIdentity(self.Proxies_HeadTip, apply=True, t=1, r=1, s=1)
-        self.ProxyConnectors(self.Proxies_Head, self.Proxies_HeadTip)
-
+        self.CreatePrixyNode(self.Proxies_HeadTip,
+                             PC=self.Proxies_Head,
+                             mMvoe=[0, 3.38, 0],
+                             isConnect=True)
         # Eye
-        self.ProxyBase(self.Proxies_LeftEye)
-        PCons = cmds.pointConstraint(self.Proxies_Head, self.Proxies_LeftEye)
-        cmds.delete(PCons)
-        cmds.move(0.57, 1.53, 1.64, self.Proxies_LeftEye, r=True, os=True, wd=True)
-        cmds.makeIdentity(self.Proxies_LeftEye, apply=True, t=1, r=1, s=1)
-        self.ProxyConnectors(self.Proxies_Head, self.Proxies_LeftEye)
+        self.CreatePrixyNode(self.Proxies_LeftEye,
+                             PC=self.Proxies_Head,
+                             mMvoe=[0.57, 1.53, 1.64],
+                             isConnect=True)
 
-        self.ProxyBase(self.Proxies_RightEye)
-        PCons = cmds.pointConstraint(self.Proxies_Head, self.Proxies_RightEye)
-        cmds.delete(PCons)
-        cmds.move(-0.57, 1.53, 1.64, self.Proxies_RightEye, r=True, os=True, wd=True)
-        cmds.makeIdentity(self.Proxies_RightEye, apply=True, t=1, r=1, s=1)
-        self.ProxyConnectors(self.Proxies_Head, self.Proxies_RightEye)
+        self.CreatePrixyNode(self.Proxies_RightEye,
+                             PC=self.Proxies_Head,
+                             mMvoe=[-0.57, 1.53, 1.64],
+                             isConnect=True)
+
         # Arms
         armLoop = 1
         armPrefx = "_L"
         armMultiplier = 1.0
         while armLoop <= 2:
+
             Clavicle = "Proxies" + armPrefx + "_Clavicle"
-            self.ProxyBase(Clavicle)
-            PCons = cmds.pointConstraint(self.Proxies_SpineTop, Clavicle)
-            cmds.delete(PCons)
-            cmds.move(armMultiplier * 1.25, 0.5, 0, Clavicle, r=True, os=True, wd=True)
-            cmds.makeIdentity(Clavicle, apply=True, t=1, r=1, s=1)
-            self.ProxyConnectors(self.Proxies_SpineTop, Clavicle)
-            cmds.parent(Clavicle,self.Proxies_SpineTop)
+            self.CreatePrixyNode(Clavicle,
+                                 PC=self.Proxies_SpineTop,
+                                 mMvoe=[armMultiplier * 1.25, 0.5, 0],
+                                 isConnect=True,
+                                 isParent=True)
 
             Shoulder = "Proxies" + armPrefx + "_Shoulder"
-            self.ProxyBase(Shoulder)
-            PCons = cmds.pointConstraint(Clavicle, Shoulder)
-            cmds.delete(PCons)
-            cmds.move(armMultiplier * 1.7, 0, 0, Shoulder, r=True, os=True, wd=True)
-            cmds.makeIdentity(Shoulder, apply=True, t=1, r=1, s=1)
-            self.ProxyConnectors(Clavicle, Shoulder)
-            cmds.parent(Shoulder,Clavicle)
+            self.CreatePrixyNode(Shoulder,
+                                 PC=Clavicle,
+                                 mMvoe=[armMultiplier * 1.7, 0, 0],
+                                 isConnect=True,
+                                 isParent=True)
 
             Elbow = "Proxies" + armPrefx + "_Elbow"
-            self.ProxyBase(Elbow)
-            PCons = cmds.pointConstraint(Shoulder, Elbow)
-            cmds.delete(PCons)
-            cmds.move(armMultiplier * 3.5, 0, 0, Elbow, r=True, os=True, wd=True)
-            cmds.makeIdentity(Elbow, apply=True, t=1, r=1, s=1)
-            self.ProxyConnectors(Shoulder, Elbow)
+            self.CreatePrixyNode(Elbow,
+                                 PC=Shoulder,
+                                 mMvoe=[armMultiplier * 3.5, 0, 0],
+                                 isConnect=True)
 
             Wrist = "Proxies" + armPrefx + "_Wrist"
-            self.ProxyBase(Wrist)
-            PCons = cmds.pointConstraint(Elbow, Wrist)
-            cmds.delete(PCons)
-            cmds.move(armMultiplier * 3.5, 0, 0, Wrist, r=True, os=True, wd=True)
-            cmds.makeIdentity(Wrist, apply=True, t=1, r=1, s=1)
-            self.ProxyConnectors(Elbow, Wrist)
+            self.CreatePrixyNode(Wrist,
+                                 PC=Elbow,
+                                 mMvoe=[armMultiplier * 3.5, 0, 0],
+                                 isConnect=True)
 
-            ElbowG = "Proxies"+ armPrefx + "_Elbow_GRP"
-            cmds.group(n=ElbowG,em=True)
+            ElbowG = "Proxies" + armPrefx + "_Elbow_GRP"
+            cmds.group(n=ElbowG, em=True)
             PCons = cmds.pointConstraint(Elbow, ElbowG)
             cmds.delete(PCons)
-            cmds.parent(Elbow,ElbowG)
+            cmds.parent(Elbow, ElbowG)
             cmds.makeIdentity(ElbowG, apply=True, t=1, r=1, s=1)
-            cmds.move(0,0,0.001,"%s.scalePivot" % ElbowG,"%s.rotatePivot"  % ElbowG ,r=True)
-            cmds.pointConstraint(Shoulder,Wrist,ElbowG,mo=True)
-            cmds.parent(ElbowG,Wrist,self.Main)
+            cmds.move(0, 0, 0.001, "%s.scalePivot" % ElbowG, "%s.rotatePivot" % ElbowG, r=True)
+            cmds.pointConstraint(Shoulder, Wrist, ElbowG, mo=True)
+            cmds.parent(ElbowG, Wrist, self.Main)
 
             Palm = "Proxies" + armPrefx + "_Palm"
-            self.ProxyBase(Palm)
-            cmds.makeIdentity(Palm, apply=True, t=1, r=1, s=1)
-            PCons = cmds.pointConstraint(Wrist, Palm)
-            cmds.delete(PCons)
-            cmds.move(armMultiplier * 0.7, 0, 0, Palm, r=True, os=True, wd=True)
-            cmds.scale(0.7, 0.7, 0.7, Palm)
-            cmds.setAttr("%sSnapShape.localScaleX" % Palm, 0.175)
-            cmds.setAttr("%sSnapShape.localScaleY" % Palm, 0.175)
-            cmds.setAttr("%sSnapShape.localScaleZ" % Palm, 0.175)
-            cmds.makeIdentity(Palm, apply=True, t=1, r=1, s=1)
-            self.ProxyConnectors(Wrist, Palm)
-            cmds.parent(Palm, Wrist)
+            self.CreatePrixyNode(Palm,
+                                 PC=Wrist,
+                                 mMvoe=[armMultiplier * 0.7, 0, 0],
+                                 mScale=[0.7, 0.7, 0.7],
+                                 lScale=[0.175, 0.175, 0.175],
+                                 isConnect=True,
+                                 isParent=True)
 
             if thumbsOn:
                 ThumbJ1 = "Proxies" + armPrefx + "_ThumbJ1"
-                self.ProxyBase(ThumbJ1)
-                PCons = cmds.pointConstraint(Wrist, ThumbJ1)
-                cmds.delete(PCons)
-                cmds.move(armMultiplier * 0.45, 0, 0.51, ThumbJ1, r=True, os=True, wd=True)
-                cmds.scale(0.75, 0.75, 0.75, ThumbJ1)
-                cmds.makeIdentity(ThumbJ1, apply=True, t=1, r=1, s=1)
-                cmds.setAttr("%sSnapShape.localScaleX" % ThumbJ1, 0.1875)
-                cmds.setAttr("%sSnapShape.localScaleY" % ThumbJ1, 0.1875)
-                cmds.setAttr("%sSnapShape.localScaleZ" % ThumbJ1, 0.1875)
+                self.CreatePrixyNode(ThumbJ1,
+                                     PC=Wrist,
+                                     mMvoe=[armMultiplier * 0.45, 0, 0.51],
+                                     mScale=[0.75, 0.75, 0.75],
+                                     lScale=[0.1875, 0.1875, 0.1875],
+                                     isConnect=True,
+                                     isParent=True)
 
                 ThumbJ2 = "Proxies" + armPrefx + "_ThumbJ2"
-                self.ProxyBase(ThumbJ2)
-                PCons = cmds.pointConstraint(ThumbJ1, ThumbJ2)
-                cmds.delete(PCons)
-                cmds.move(armMultiplier * 0, 0, 0.75, ThumbJ2, r=True, os=True, wd=True)
-                cmds.scale(0.75, 0.75, 0.75, ThumbJ2)
-                cmds.makeIdentity(ThumbJ2, apply=True, t=1, r=1, s=1)
-                cmds.setAttr("%sSnapShape.localScaleX" % ThumbJ2, 0.1875)
-                cmds.setAttr("%sSnapShape.localScaleY" % ThumbJ2, 0.1875)
-                cmds.setAttr("%sSnapShape.localScaleZ" % ThumbJ2, 0.1875)
+                self.CreatePrixyNode(ThumbJ2,
+                                     PC=ThumbJ1,
+                                     mMvoe=[armMultiplier * 0, 0, 0.75],
+                                     mScale=[0.75, 0.75, 0.75],
+                                     lScale=[0.1875, 0.1875, 0.1875],
+                                     isConnect=True,
+                                     isParent=True)
 
                 ThumbJ3 = "Proxies" + armPrefx + "_ThumbJ3"
-                self.ProxyBase(ThumbJ3)
-                PCons = cmds.pointConstraint(ThumbJ2, ThumbJ3)
-                cmds.delete(PCons)
-                cmds.move(armMultiplier * 0, 0, 0.75, ThumbJ3, r=True, os=True, wd=True)
-                cmds.scale(0.75, 0.75, 0.75, ThumbJ3)
-                cmds.makeIdentity(ThumbJ3, apply=True, t=1, r=1, s=1)
-                cmds.setAttr("%sSnapShape.localScaleX" % ThumbJ3, 0.1875)
-                cmds.setAttr("%sSnapShape.localScaleY" % ThumbJ3, 0.1875)
-                cmds.setAttr("%sSnapShape.localScaleZ" % ThumbJ3, 0.1875)
+                self.CreatePrixyNode(ThumbJ3,
+                                     PC=ThumbJ2,
+                                     mMvoe=[armMultiplier * 0, 0, 0.75],
+                                     mScale=[0.75, 0.75, 0.75],
+                                     lScale=[0.1875, 0.1875, 0.1875],
+                                     isConnect=True,
+                                     isParent=True)
 
                 ThumbJTip = "Proxies" + armPrefx + "_ThumbJTip"
-                self.ProxyBase(ThumbJTip)
-                PCons = cmds.pointConstraint(ThumbJ3, ThumbJTip)
-                cmds.delete(PCons)
-                cmds.move(armMultiplier * 0, 0, 0.75, ThumbJTip, r=True, os=True, wd=True)
-                cmds.scale(0.75, 0.75, 0.75, ThumbJTip)
-                cmds.makeIdentity(ThumbJTip, apply=True, t=1, r=1, s=1)
-                cmds.setAttr("%sSnapShape.localScaleX" % ThumbJTip, 0.1875)
-                cmds.setAttr("%sSnapShape.localScaleY" % ThumbJTip, 0.1875)
-                cmds.setAttr("%sSnapShape.localScaleZ" % ThumbJTip, 0.1875)
-
-                cmds.parent(ThumbJ1, Wrist)
-                cmds.parent(ThumbJ2, ThumbJ2)
-                cmds.parent(ThumbJ2, ThumbJ3)
-                cmds.parent(ThumbJ3, ThumbJTip)
-
-                self.ProxyConnectors(Wrist, ThumbJ1)
-                self.ProxyConnectors(ThumbJ1, ThumbJ2)
-                self.ProxyConnectors(ThumbJ2, ThumbJ3)
-                self.ProxyConnectors(ThumbJ3, ThumbJTip)
+                self.CreatePrixyNode(ThumbJTip,
+                                     PC=ThumbJ3,
+                                     mMvoe=[armMultiplier * 0, 0, 0.75],
+                                     mScale=[0.75, 0.75, 0.75],
+                                     lScale=[0.1875, 0.1875, 0.1875],
+                                     isConnect=True,
+                                     isParent=True)
 
             fingerIndex = 1
             while fingerIndex <= fingersNum:
@@ -452,49 +431,36 @@ class CreateBipedJoints:
                 cmds.setAttr("%sSnapShape.localScaleX" % FingerJ1, 0.155)
                 cmds.setAttr("%sSnapShape.localScaleY" % FingerJ1, 0.155)
                 cmds.setAttr("%sSnapShape.localScaleZ" % FingerJ1, 0.155)
+                cmds.parent(FingerJ1, Palm)
+                self.ProxyConnectors(Palm, FingerJ1)
 
                 FingerJ2 = "Proxies" + armPrefx + "_Finger_" + str(fingerIndex) + "_J2"
-                self.ProxyBase(FingerJ2)
-                PCons = cmds.pointConstraint(FingerJ1, FingerJ2)
-                cmds.delete(PCons)
-                cmds.move(armMultiplier * 0.61, 0, 0, FingerJ2, r=True, os=True, wd=True)
-                cmds.scale(0.62, 0.62, 0.62, FingerJ2)
-                cmds.makeIdentity(FingerJ2, apply=True, t=1, r=1, s=1)
-                cmds.setAttr("%sSnapShape.localScaleX" % FingerJ2, 0.155)
-                cmds.setAttr("%sSnapShape.localScaleY" % FingerJ2, 0.155)
-                cmds.setAttr("%sSnapShape.localScaleZ" % FingerJ2, 0.155)
+                self.CreatePrixyNode(FingerJ2,
+                                     PC=FingerJ1,
+                                     mMvoe=[armMultiplier * 0.61, 0, 0],
+                                     mScale=[0.62, 0.62, 0.62],
+                                     lScale=[0.155, 0.155, 0.155],
+                                     isConnect=True,
+                                     isParent=True)
 
                 FingerJ3 = "Proxies" + armPrefx + "_Finger_" + str(fingerIndex) + "_J3"
-                self.ProxyBase(FingerJ3)
-                PCons = cmds.pointConstraint(FingerJ2, FingerJ3)
-                cmds.delete(PCons)
-                cmds.move(armMultiplier * 0.61, 0, 0, FingerJ3, r=True, os=True, wd=True)
-                cmds.scale(0.62, 0.62, 0.62, FingerJ3)
-                cmds.makeIdentity(FingerJ3, apply=True, t=1, r=1, s=1)
-                cmds.setAttr("%sSnapShape.localScaleX" % FingerJ3, 0.155)
-                cmds.setAttr("%sSnapShape.localScaleY" % FingerJ3, 0.155)
-                cmds.setAttr("%sSnapShape.localScaleZ" % FingerJ3, 0.155)
+                self.CreatePrixyNode(FingerJ3,
+                                     PC=FingerJ2,
+                                     mMvoe=[armMultiplier * 0.61, 0, 0],
+                                     mScale=[0.62, 0.62, 0.62],
+                                     lScale=[0.155, 0.155, 0.155],
+                                     isConnect=True,
+                                     isParent=True)
 
                 FingerJTip = "Proxies" + armPrefx + "_Finger_" + str(fingerIndex) + "_JTip"
-                self.ProxyBase(FingerJTip)
-                PCons = cmds.pointConstraint(FingerJ3, FingerJTip)
-                cmds.delete(PCons)
-                cmds.move(armMultiplier * 0.61, 0, 0, FingerJTip, r=True, os=True, wd=True)
-                cmds.scale(0.62, 0.62, 0.62, FingerJTip)
-                cmds.makeIdentity(FingerJTip, apply=True, t=1, r=1, s=1)
-                cmds.setAttr("%sSnapShape.localScaleX" % FingerJTip, 0.155)
-                cmds.setAttr("%sSnapShape.localScaleY" % FingerJTip, 0.155)
-                cmds.setAttr("%sSnapShape.localScaleZ" % FingerJTip, 0.155)
+                self.CreatePrixyNode(FingerJTip,
+                                     PC=FingerJ3,
+                                     mMvoe=[armMultiplier * 0.61, 0, 0],
+                                     mScale=[0.62, 0.62, 0.62],
+                                     lScale=[0.155, 0.155, 0.155],
+                                     isConnect=True,
+                                     isParent=True)
 
-                cmds.parent(FingerJ1, Palm)
-                cmds.parent(FingerJ2, FingerJ1)
-                cmds.parent(FingerJ3, FingerJ2)
-                cmds.parent(FingerJTip, FingerJ3)
-
-                self.ProxyConnectors(Palm, FingerJ1)
-                self.ProxyConnectors(FingerJ1, FingerJ2)
-                self.ProxyConnectors(FingerJ2, FingerJ3)
-                self.ProxyConnectors(FingerJ3, FingerJTip)
                 fingerIndex += 1
 
             cmds.makeIdentity(Wrist, apply=True, t=1, r=1, s=1)
@@ -508,55 +474,48 @@ class CreateBipedJoints:
         legMultiplier = 1.0
         while legLoop <= 2:
             Hip = "Proxies" + legPrefx + "_Hip"
-            self.ProxyBase(Hip)
-            PCons = cmds.pointConstraint(self.Proxies_Root, Hip)
-            cmds.delete(PCons)
-            cmds.move(legMultiplier * 1.72, -0.8, 0, Hip, r=True, os=True, wd=True)
-            cmds.makeIdentity(Hip, apply=True, t=1, r=1, s=1)
-            self.ProxyConnectors(self.Proxies_Root, Hip)
-            cmds.parent(Hip,self.Proxies_Root)
+            self.CreatePrixyNode(Hip,
+                                 PC=self.Proxies_Root,
+                                 mMvoe=[legMultiplier * 1.72, -0.8, 0],
+                                 isConnect=True,
+                                 isParent=True)
 
             Knee = "Proxies" + legPrefx + "_Knee"
-            self.ProxyBase(Knee)
-            PCons = cmds.pointConstraint(Hip, Knee)
-            cmds.delete(PCons)
-            cmds.move(0, -6.4, 0, Knee, r=True, os=True, wd=True)
-            cmds.rotate(0, 180, 90, Knee)
-            cmds.makeIdentity(Knee, apply=True, t=1, r=1, s=1)
-            self.ProxyConnectors(Hip, Knee)
+            self.CreatePrixyNode(Knee,
+                                 PC=Hip,
+                                 mMvoe=[0, -6.4, 0],
+                                 mRotate=[0, 180, 90],
+                                 isConnect=True,
+                                 isParent=True)
 
             Ankle = "Proxies" + legPrefx + "_Ankle"
-            self.ProxyBase(Ankle)
-            PCons = cmds.pointConstraint(Knee, Ankle)
-            cmds.delete(PCons)
-            cmds.move(0, -6.4, 0, Ankle, r=True, os=True, wd=True)
-            cmds.makeIdentity(Ankle, apply=True, t=1, r=1, s=1)
-            self.ProxyConnectors(Knee, Ankle)
+            self.CreatePrixyNode(Ankle,
+                                 PC=Knee,
+                                 mMvoe=[0, -6.4, 0],
+                                 isConnect=True,
+                                 isParent=True)
 
-            KneeG = "Proxies"+ legPrefx + "_Knee_GRP"
-            cmds.group(n=KneeG,em=True)
+            KneeG = "Proxies" + legPrefx + "_Knee_GRP"
+            cmds.group(n=KneeG, em=True)
             PCons = cmds.pointConstraint(Knee, KneeG)
             cmds.delete(PCons)
-            cmds.parent(Knee,KneeG)
+            cmds.parent(Knee, KneeG)
             cmds.makeIdentity(KneeG, apply=True, t=1, r=1, s=1)
             # cmds.move(0,0,0.001,"%s.scalePivot" % KneeG,"%s.rotatePivot"  % KneeG ,r=True)
-            cmds.pointConstraint(Hip,Ankle,KneeG,mo=True)
-            cmds.parent(KneeG,Ankle,self.Main)
+            cmds.pointConstraint(Hip, Ankle, KneeG, mo=True)
+            cmds.parent(KneeG, Ankle, self.Main)
 
             Ball = "Proxies" + legPrefx + "_Ball"
-            self.ProxyBase(Ball)
-            PCons = cmds.pointConstraint(Ankle, Ball)
-            cmds.delete(PCons)
-            cmds.move(0, -1.65, 2.26, Ball, r=True, os=True, wd=True)
-            cmds.makeIdentity(Ball, apply=True, t=1, r=1, s=1)
-            self.ProxyConnectors(Ankle, Ball)
+            self.CreatePrixyNode(Ball,
+                                 PC=Ankle,
+                                 mMvoe=[0, -1.65, 2.26],
+                                 isConnect=True,
+                                 isParent=True)
 
             Toe = "Proxies" + legPrefx + "_Toe"
-            self.ProxyBase(Toe)
-            PCons = cmds.pointConstraint(Ball, Toe)
-            cmds.delete(PCons)
-            cmds.move(0, 0, 1.7, Toe, r=True, os=True, wd=True)
-            cmds.makeIdentity(Toe, apply=True, t=1, r=1, s=1)
+            self.CreatePrixyNode(Toe,
+                                 PC=Ball,
+                                 mMvoe=[0, 0, 1.7])
 
             if toesNum == 1:
                 self.ProxyConnectors(Ball, Toe)
@@ -579,8 +538,7 @@ class CreateBipedJoints:
             legMultiplier = -1.0
 
         # PARENT CONTROLS
-        cmds.parent(self.Proxies_Root,spineProxiesG,self.Proxies_SpineTop,neckProxiesG,self.Proxies_Head,self.Main)
-        cmds.parent(self.Proxies_Jaw,self.Proxies_HeadTip,self.Proxies_LeftEye,self.Proxies_RightEye,self.Proxies_Head)
-        cmds.parent(self.Proxies_JawTip,self.Proxies_Jaw)
-
-
+        cmds.parent(self.Proxies_Root, spineProxiesG, self.Proxies_SpineTop, neckProxiesG, self.Proxies_Head, self.Main)
+        cmds.parent(self.Proxies_Jaw, self.Proxies_HeadTip, self.Proxies_LeftEye, self.Proxies_RightEye,
+                    self.Proxies_Head)
+        cmds.parent(self.Proxies_JawTip, self.Proxies_Jaw)
