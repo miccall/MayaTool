@@ -186,8 +186,8 @@ class CreateBipedJoints:
         fingersNum = 5
         toesNum = 1
         spineNum = 4
-        neckNum = 3
-        self.Main = "Main"
+        neckNum = 2
+        self.Main = "Proxies_Main"
         self.Proxies_Root = "Proxies_Root"
         self.Proxies_SpineTop = "Proxies_SpineTop"
         self.Proxies_Head = "Proxies_Head"
@@ -519,9 +519,11 @@ class CreateBipedJoints:
 
             if toesNum == 1:
                 self.ProxyConnectors(Ball, Toe)
-            cmds.group(n="%s_GRP" % Ball, em=True)
-            cmds.parent("%s_GRP" % Ball, Ball)
-            cmds.parent(Toe, "%s_GRP" % Ball)
+
+            BallG = "Proxies" + legPrefx + "_Ball_GRP"
+            cmds.group(n=BallG, em=True)
+            cmds.parent(BallG, Ball)
+            cmds.parent(Toe, BallG)
 
             KneeLocator = "Proxies" + legPrefx + "_KneeLocator"
             cmds.spaceLocator(n=KneeLocator)
@@ -542,3 +544,279 @@ class CreateBipedJoints:
         cmds.parent(self.Proxies_Jaw, self.Proxies_HeadTip, self.Proxies_LeftEye, self.Proxies_RightEye,
                     self.Proxies_Head)
         cmds.parent(self.Proxies_JawTip, self.Proxies_Jaw)
+
+        # INDICATOR
+        self.ElbowIndicator("L")
+        self.ElbowIndicator("R")
+        self.KneeIndicator("L")
+        self.KneeIndicator("R")
+
+        # LOCATORS FOR FOOT TILT
+        self.FootTilt("L")
+        self.FootTilt("R")
+
+        self.LimitAndLock()
+
+        # CREATE LAYER
+        cmds.select(self.Main)
+        layer = cmds.objExists("ProxiesLayer")
+        if layer is not None:
+            cmds.createDisplayLayer(n="ProxiesLayer", number=1, nr=True)
+        else:
+            cmds.editDisplayLayerMembers("ProxiesLayer", self.Main, noRecurse=True)
+
+        cmds.select(clear=True)
+        pass
+
+    def ElbowIndicator(self, side):
+        sign = 1
+        if side == "L":
+            sign = 1
+        else:
+            sign = -1
+
+        # fetch
+        Proxies_Elbow = "Proxies_" + side + "_Elbow"
+        Proxies_Shoulder = "Proxies_" + side + "_Shoulder"
+        Proxies_Wrist = "Proxies_" + side + "_Wrist"
+        Proxies_Elbow_GRP = "Proxies_" + side + "_Elbow_GRP"
+        Proxies_ElbowParent = "Proxies_" + side + "_ElbowParent"
+        Proxies_ElbowAim = "Proxies_" + side + "_ElbowAim"
+        Proxies_ElbowParentUp = "Proxies_" + side + "_ElbowParentUp"
+        Proxies_ElbowParentUp_GRP = "Proxies_" + side + "_ElbowParentUp_GRP"
+
+        # Locator
+        cmds.spaceLocator(n=Proxies_ElbowParent)
+        cmds.parent(Proxies_ElbowParent, self.Main)
+        cmds.spaceLocator(n=Proxies_ElbowAim)
+        cmds.move(2 * sign, 0, 0, Proxies_ElbowAim, r=True)
+        cmds.parent(Proxies_ElbowAim, Proxies_ElbowParent)
+        cmds.spaceLocator(n=Proxies_ElbowParentUp, p=(0, 0, 0))
+        cmds.group(n=Proxies_ElbowParentUp_GRP)
+        cmds.pointConstraint(Proxies_Shoulder, Proxies_ElbowParentUp_GRP, skip=['x', 'z'])
+        cmds.parent(Proxies_ElbowParentUp_GRP, self.Main)
+
+        # connect
+        Proxies_ElbowParentUp_MD = "%s_MD" % Proxies_ElbowParentUp
+        cmds.shadingNode("multiplyDivide", asUtility=True, n=Proxies_ElbowParentUp_MD)
+        cmds.setAttr("%s.operation" % Proxies_ElbowParentUp_MD, 2)
+        cmds.setAttr("%s.input2X" % Proxies_ElbowParentUp_MD, -2)
+        cmds.connectAttr("%s.translateY" % Proxies_Wrist, "%s.input1X" % Proxies_ElbowParentUp_MD)
+        cmds.connectAttr("%s.outputX" % Proxies_ElbowParentUp_MD, "%s.translateY" % Proxies_ElbowParentUp)
+        cmds.pointConstraint(Proxies_Shoulder, Proxies_ElbowParent)
+        cmds.pointConstraint(Proxies_Shoulder, Proxies_Wrist, Proxies_ElbowAim)
+        cmds.connectAttr("%s.rotate" % Proxies_ElbowParent, "%s.rotate" % Proxies_Elbow_GRP)
+        cmds.aimConstraint(Proxies_Wrist, Proxies_ElbowParent,
+                           aimVector=[1 * sign, 0, 0], upVector=[-1 * sign, 0, 0], worldUpType="object",
+                           worldUpObject=Proxies_ElbowParentUp)
+        cmds.aimConstraint(Proxies_ElbowAim, Proxies_Elbow,
+                           aimVector=[0, 0, 1], upVector=[0, 1, 0], worldUpType="none",
+                           skip=['y', 'z'])
+        pass
+
+    def KneeIndicator(self, side):
+        sign = 1
+        if side == "L":
+            sign = 1
+        else:
+            sign = -1
+
+        # fetch & name
+        Hip = "Proxies_" + side + "_Hip"
+        Ankle = "Proxies_" + side + "_Ankle"
+        Knee = "Proxies_" + side + "_Knee"
+        KneeG = "Proxies_" + side + "_Knee_GRP"
+        Proxies_KneeParent = "Proxies_" + side + "_KneeParent"
+        Proxies_KneeAim = "Proxies_" + side + "_KneeAim"
+        Proxies_KneeParentUp = "Proxies_" + side + "_KneeParentUp"
+        Proxies_KneeParentUp_GRP = "Proxies_" + side + "_KneeParentUp_GRP"
+
+        # Locator
+        cmds.spaceLocator(n=Proxies_KneeParent)
+        cmds.parent(Proxies_KneeParent, self.Main)
+        cmds.spaceLocator(n=Proxies_KneeAim)
+        cmds.move(0, -2, 0, Proxies_KneeAim, r=True)
+        cmds.parent(Proxies_KneeAim, Proxies_KneeParent)
+        cmds.spaceLocator(n=Proxies_KneeParentUp, p=(0, 0, 0))
+        cmds.group(n=Proxies_KneeParentUp_GRP)
+        cmds.pointConstraint(Hip, Proxies_KneeParentUp_GRP, offset=(0, 2, 0))
+        cmds.parent(Proxies_KneeParentUp_GRP, self.Main)
+
+        # connect
+        Proxies_KneeParentUp_MD = "%s_MD" % Proxies_KneeParentUp
+        cmds.shadingNode("multiplyDivide", asUtility=True, n=Proxies_KneeParentUp_MD)
+        cmds.setAttr("%s.operation" % Proxies_KneeParentUp_MD, 2)
+        cmds.setAttr("%s.input2X" % Proxies_KneeParentUp_MD, -2)
+        cmds.connectAttr("%s.translateX" % Ankle, "%s.input1X" % Proxies_KneeParentUp_MD)
+        cmds.connectAttr("%s.outputX" % Proxies_KneeParentUp_MD, "%s.translateX" % Proxies_KneeParentUp)
+        cmds.pointConstraint(Hip, Proxies_KneeParent)
+        cmds.pointConstraint(Hip, Ankle, Proxies_KneeAim)
+
+        cmds.connectAttr("%s.rotate" % Proxies_KneeParent, "%s.rotate" % KneeG)
+
+        cmds.aimConstraint(Ankle, Proxies_KneeParent,
+                           aimVector=[0, -1, 0], upVector=[0, 1, 0], worldUpType="object",
+                           worldUpObject=Proxies_KneeParentUp)
+
+        cmds.aimConstraint(Proxies_KneeAim, Knee,
+                           aimVector=[0, 0, -1], upVector=[0, 1, 0], worldUpType="objectrotation",
+                           worldUpVector=[0, 1, 0], worldUpObject=Proxies_KneeAim, skip=['x', 'z'])
+        pass
+
+    def FootTilt(self, side):
+
+        sign = 1
+        if side == "L":
+            sign = 1
+        else:
+            sign = -1
+        Ankle = "Proxies_" + side + "_Ankle"
+        Ball = "Proxies_" + side + "_Ball"
+        BallG = "Proxies_" + side + "_Ball_GRP"
+        FootG = "Proxies_" + side + "_Foot_GRP"
+        FootInTilt = "Proxies_" + side + "_FootInTilt"
+        FootInTiltShape = "%sShape" % FootInTilt
+
+        FootOutTilt = "Proxies_" + side + "_FootOutTilt"
+        FootOutTiltShape = "%sShape" % FootInTilt
+
+        FootHeelPivot = "Proxies_" + side + "_FootHeelPivot"
+        FootHeelPivotShape = "%sShape" % FootHeelPivot
+
+        mel.eval(
+            "curve -n " + FootInTilt + " -d 1 -p 0 0 -1 -p 0 0 1 -p 0 0 0 -p 1 0 0 -p -1 0 0 -p 0 0 0 -p 0 1 0 -p 0 -1 0 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 ;")
+        cmds.pickWalk(d="down")
+        cmds.rename(FootInTiltShape)
+        cmds.move(0.5 * sign, 0, 2.26, FootInTilt)
+        cmds.makeIdentity(FootInTilt, apply=True, t=1, r=1, s=1)
+
+        mel.eval(
+            "curve -n " + FootOutTilt + " -d 1 -p 0 0 -1 -p 0 0 1 -p 0 0 0 -p 1 0 0 -p -1 0 0 -p 0 0 0 -p 0 1 0 -p 0 -1 0 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 ;")
+        cmds.pickWalk(d="down")
+        cmds.rename(FootOutTiltShape)
+        cmds.move(3 * sign, 0, 2.26, FootOutTilt)
+        cmds.makeIdentity(FootOutTilt, apply=True, t=1, r=1, s=1)
+        cmds.parent(FootOutTilt, FootInTilt, BallG)
+
+        mel.eval(
+            "curve -n " + FootHeelPivot + " -d 1 -p 0 0 -1 -p 0 0 1 -p 0 0 0 -p 1 0 0 -p -1 0 0 -p 0 0 0 -p 0 1 0 -p 0 -1 0 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 ;")
+        cmds.pickWalk(d="down")
+        cmds.rename(FootHeelPivotShape)
+        cmds.move(1.72 * sign, 0, -1.079, FootHeelPivot)
+        cmds.makeIdentity(FootHeelPivot, apply=True, t=1, r=1, s=1)
+
+        cmds.group(Ball, FootHeelPivot, n=FootG)
+        cmds.parent(FootG, self.Main)
+        AnklePosition = cmds.xform(Ankle, q=True, ws=True, rp=True)
+        cmds.move(AnklePosition[0], 0, AnklePosition[2], "%s.scalePivot" % FootG, "%s.rotatePivot" % FootG)
+        cmds.pointConstraint(Ankle, FootG, mo=True, skip="y")
+        cmds.orientConstraint(Ankle, FootG, mo=True, skip=['x', 'z'])
+        cmds.scaleConstraint(Ankle, FootG, offset=[1, 1, 1], skip='y')
+        pass
+
+    def LimitAndLock(self):
+        cmds.select(self.Main, hi=True)
+        nurbsCurvesShapes = cmds.ls(sl=True, type="nurbsCurve")
+        cmds.select(nurbsCurvesShapes)
+        cmds.pickWalk(d="up")
+        nurbsCurvesOnly = cmds.ls(sl=True)
+        for selectedProxy in nurbsCurvesOnly:
+            cmds.transformLimits(selectedProxy, sx=(0.01, 1), esx=(1, 0))
+            cmds.transformLimits(selectedProxy, sy=(0.01, 1), esy=(1, 0))
+            cmds.transformLimits(selectedProxy, sz=(0.01, 1), esz=(1, 0))
+
+        self.FingerLimit("L")
+        self.FingerLimit("R")
+
+        # CONSTRAIN FOOT CONTROLS TO GROUND PLANE
+        LBallG = "Proxies_" + "L" + "_Ball_GRP"
+        RBallG = "Proxies_" + "R" + "_Ball_GRP"
+
+        cmds.pointConstraint(self.Main, LBallG)
+        cmds.pointConstraint(self.Main, RBallG)
+
+        cmds.transformLimits(self.Proxies_Root, ty=(-12, 1), ety=(1, 0))
+        cmds.transformLimits(self.Proxies_SpineTop, ty=(-17.5, 1), ety=(1, 0))
+        cmds.transformLimits(self.Proxies_HeadTip, ty=(-3, 1), ety=(1, 0))
+        cmds.transformLimits(self.Proxies_LeftEye, ty=(-0.5, 1), ety=(1, 0))
+        cmds.transformLimits(self.Proxies_RightEye, ty=(-1, 0.5), ety=(0, 1))
+        self.LimitSide("L")
+        self.LimitSide("R")
+
+        self.setLock(self.Main, "tx")
+        self.setLock(self.Main, "ty")
+        self.setLock(self.Main, "tz")
+        self.setLock(self.Main, "rx")
+        self.setLock(self.Main, "ry")
+        self.setLock(self.Main, "rz")
+
+        pass
+
+    def FingerLimit(self, side):
+        sign = 1
+        if side == "L":
+            sign = 1
+        else:
+            sign = -1
+
+        FingerList = "Proxies_" + side + "_Finger***J1"
+        FingerJ2 = "Proxies_" + side + "_Finger***J2"
+        FingerJ3 = "Proxies_" + side + "_Finger***J3"
+        FingerJTip = "Proxies_" + side + "_Finger***JTip"
+
+        cmds.select(FingerList)
+        currentSelection = len(cmds.ls(sl=True))
+        if currentSelection > 0:
+            cmds.select(FingerList)
+            finger_J1 = cmds.ls(sl=True)
+            for selectedProxy in finger_J1:
+                if sign > 0:
+                    cmds.transformLimits(selectedProxy, tx=(-0.75, 1), etx=(1, 0))
+                else:
+                    cmds.transformLimits(selectedProxy, tx=(0, 0.75), etx=(0, 1))
+
+            cmds.select(FingerJ2, FingerJ3, FingerJTip)
+            finger_J1 = cmds.ls(sl=True)
+            for selectedProxy in finger_J1:
+                if sign > 0:
+                    cmds.transformLimits(selectedProxy, tx=(-0.5, 1), etx=(1, 0))
+                else:
+                    cmds.transformLimits(selectedProxy, tx=(0, 0.5), etx=(0, 1))
+
+        pass
+
+    def LimitSide(self, side):
+        Clavicle = "Proxies_" + side + "_Clavicle"
+        Shoulder = "Proxies_" + side + "_Shoulder"
+        Wrist = "Proxies_" + side + "_Wrist"
+        Palm = "Proxies_" + side + "_Palm"
+        Hip = "Proxies_" + side + "_Hip"
+        Ankle = "Proxies_" + side + "_Ankle"
+        Elbow = "Proxies_" + side + "_Elbow"
+        Knee = "Proxies_" + side + "_Knee"
+        if side == "L":
+            cmds.transformLimits(Clavicle, tx=(-1, 1), etx=(1, 0))
+            cmds.transformLimits(Shoulder, tx=(-1.5, 1), etx=(1, 0))
+            cmds.transformLimits(Wrist, tx=(-6.75, 1), etx=(1, 0))
+            cmds.transformLimits(Palm, tx=(-0.6, 1), etx=(1, 0))
+            cmds.transformLimits(Hip, tx=(-1.5, 1), etx=(1, 0))
+            cmds.transformLimits(Ankle, tx=(-1.5, 1), etx=(1, 0))
+            cmds.transformLimits(Elbow, tz=(-1, -0.001), etz=(0, 1))
+            cmds.transformLimits(Knee, tz=(0.001, 1), etz=(1, 0))
+        else:
+            cmds.transformLimits(Clavicle, tx=(1, 1), etx=(0, 1))
+            cmds.transformLimits(Shoulder, tx=(1, 1.5), etx=(0, 1))
+            cmds.transformLimits(Wrist, tx=(1, 6.75), etx=(0, 1))
+            cmds.transformLimits(Palm, tx=(0, 0.6), etx=(0, 1))
+            cmds.transformLimits(Hip, tx=(1, 1.5), etx=(0, 1))
+            cmds.transformLimits(Ankle, tx=(1, 1.5), etx=(0, 1))
+            cmds.transformLimits(Elbow, tz=(-1, -0.001), etz=(0, 1))
+            cmds.transformLimits(Knee, tz=(0.001, 1), etz=(1, 0))
+        cmds.transformLimits(Ankle, ry=(-80, 80), ery=(1, 1))
+        self.setLock(Ankle, "rx")
+        self.setLock(Ankle, "rz")
+        pass
+
+    def setLock(self, name, attr):
+        cmds.setAttr("%s.%s" % (name, attr), l=1, k=0, channelBox=0)
+        pass
