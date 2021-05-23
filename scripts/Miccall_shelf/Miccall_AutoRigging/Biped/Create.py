@@ -194,8 +194,8 @@ class CreateBipedJoints:
         self.Proxies_Jaw = "Proxies_Jaw"
         self.Proxies_JawTip = "Proxies_JawTip"
         self.Proxies_HeadTip = "Proxies_HeadTip"
-        self.Proxies_LeftEye = "Proxies_LeftEye"
-        self.Proxies_RightEye = "Proxies_RightEye"
+        self.Proxies_L_Eye = "Proxies_L_Eye"
+        self.Proxies_R_Eye = "Proxies_R_Eye"
         self.Proxies_SpineOrientLocator = "Proxies_SpineOrientLocator"
         self.Proxies_NeckOrientLocator = "Proxies_NeckOrientLocator"
         # todo : SET UNITS TO CENTIMETERS
@@ -307,12 +307,12 @@ class CreateBipedJoints:
                              mMvoe=[0, 3.38, 0],
                              isConnect=True)
         # Eye
-        self.CreatePrixyNode(self.Proxies_LeftEye,
+        self.CreatePrixyNode(self.Proxies_L_Eye,
                              PC=self.Proxies_Head,
                              mMvoe=[0.57, 1.53, 1.64],
                              isConnect=True)
 
-        self.CreatePrixyNode(self.Proxies_RightEye,
+        self.CreatePrixyNode(self.Proxies_R_Eye,
                              PC=self.Proxies_Head,
                              mMvoe=[-0.57, 1.53, 1.64],
                              isConnect=True)
@@ -541,7 +541,7 @@ class CreateBipedJoints:
 
         # PARENT CONTROLS
         cmds.parent(self.Proxies_Root, spineProxiesG, self.Proxies_SpineTop, neckProxiesG, self.Proxies_Head, self.Main)
-        cmds.parent(self.Proxies_Jaw, self.Proxies_HeadTip, self.Proxies_LeftEye, self.Proxies_RightEye,
+        cmds.parent(self.Proxies_Jaw, self.Proxies_HeadTip, self.Proxies_L_Eye, self.Proxies_R_Eye,
                     self.Proxies_Head)
         cmds.parent(self.Proxies_JawTip, self.Proxies_Jaw)
 
@@ -566,6 +566,38 @@ class CreateBipedJoints:
             cmds.editDisplayLayerMembers("ProxiesLayer", self.Main, noRecurse=True)
 
         cmds.select(clear=True)
+
+        # menber
+        self.Main = "Proxies_Main"
+        self.Proxies_Root = "Proxies_Root"
+        self.Proxies_SpineTop = "Proxies_SpineTop"
+        self.Proxies_Head = "Proxies_Head"
+        self.Proxies_Jaw = "Proxies_Jaw"
+        self.Proxies_JawTip = "Proxies_JawTip"
+        self.Proxies_HeadTip = "Proxies_HeadTip"
+        self.Proxies_L_Eye = "Proxies_L_Eye"
+        self.Proxies_R_Eye = "Proxies_R_Eye"
+        self.Proxies_L_Clavicle = "Proxies_L_Clavicle"
+        self.Proxies_L_Shoulder = "Proxies_L_Shoulder"
+        self.Proxies_L_Wrist = "Proxies_L_Wrist"
+        self.Proxies_L_Palm = "Proxies_L_Palm"
+        self.Proxies_L_Hip = "Proxies_L_Hip"
+        self.Proxies_L_Ankle = "Proxies_L_Ankle"
+        self.Proxies_L_Elbow = "Proxies_L_Elbow"
+        self.Proxies_L_Knee = "Proxies_L_Knee"
+        self.Proxies_L_Ball = "Proxies_L_Ball"
+        self.Proxies_L_Toe = "Proxies_L_Toe"
+        self.Proxies_R_Clavicle = "Proxies_R_Clavicle"
+        self.Proxies_R_Shoulder = "Proxies_R_Shoulder"
+        self.Proxies_R_Wrist = "Proxies_R_Wrist"
+        self.Proxies_R_Palm = "Proxies_R_Palm"
+        self.Proxies_R_Hip = "Proxies_R_Hip"
+        self.Proxies_R_Ankle = "Proxies_R_Ankle"
+        self.Proxies_R_Elbow = "Proxies_R_Elbow"
+        self.Proxies_R_Knee = "Proxies_R_Knee"
+        self.Proxies_R_Ball = "Proxies_R_Ball"
+        self.Proxies_R_Toe = "Proxies_R_Toe"
+
         pass
 
     def ElbowIndicator(self, side):
@@ -738,8 +770,8 @@ class CreateBipedJoints:
         cmds.transformLimits(self.Proxies_Root, ty=(-12, 1), ety=(1, 0))
         cmds.transformLimits(self.Proxies_SpineTop, ty=(-17.5, 1), ety=(1, 0))
         cmds.transformLimits(self.Proxies_HeadTip, ty=(-3, 1), ety=(1, 0))
-        cmds.transformLimits(self.Proxies_LeftEye, ty=(-0.5, 1), ety=(1, 0))
-        cmds.transformLimits(self.Proxies_RightEye, ty=(-1, 0.5), ety=(0, 1))
+        cmds.transformLimits(self.Proxies_L_Eye, ty=(-0.5, 1), ety=(1, 0))
+        cmds.transformLimits(self.Proxies_R_Eye, ty=(-1, 0.5), ety=(0, 1))
         self.LimitSide("L")
         self.LimitSide("R")
 
