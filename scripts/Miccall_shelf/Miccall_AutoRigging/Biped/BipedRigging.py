@@ -144,23 +144,21 @@ class BipedRigging:
         cmds.joint(n=self.RootJointTemp)
         self.AlignPointPos(self.Creator.spineProxies[0], self.RootJointTemp)
 
-        spineJoints = [self.RootJointTemp]
+        self.spineJoints = [self.RootJointTemp]
         Proxy_spineJoints = self.Creator.spineProxies
         i = 1
         while i < len(Proxy_spineJoints):
-            cmds.select(spineJoints[i - 1])
+            cmds.select(self.spineJoints[i - 1])
             SpineTemp = "_SpineTemp0"
             JointSuffix = "_JNT"
             spineName = name + SpineTemp + str(i + 1) + JointSuffix
             cmds.joint(n=spineName)
             self.AlignPointPos(Proxy_spineJoints[i], spineName)
             cmds.select(spineName)
-            cmds.joint(e=True, oj="xyz", secondaryAxisOrient="zdown", zso=True)
-            spineJoints.append(spineName)
+            self.spineJoints.append(spineName)
             i += 1
-        cmds.select(spineJoints[-1])
+        cmds.select(self.spineJoints[-1])
         cmds.joint(n=self.SpineTopJoint)
-        cmds.joint(e=True, oj="xyz", secondaryAxisOrient="zdown", zso=True)
         # cmds.pointConstraint(self.Creator.Proxies_SpineTop, self.SpineTopJoint)
         self.AlignPointPos(self.Creator.Proxies_SpineTop, self.SpineTopJoint)
 
@@ -168,20 +166,17 @@ class BipedRigging:
         self.NeckJointTemp = "%s_NeckTemp01_JNT" % name
         cmds.select(self.SpineTopJoint)
         cmds.joint(n=self.NeckJointTemp)
-        cmds.joint(e=True, oj="xyz", secondaryAxisOrient="zdown", zso=True)
         self.AlignPointPos(self.Creator.neckProxies[0], self.NeckJointTemp)
 
         # Head
         self.HeadJoint = "%s_Head_JNT" % name
         cmds.select(self.NeckJointTemp)
         cmds.joint(n=self.HeadJoint)
-        cmds.joint(e=True, oj="xyz", secondaryAxisOrient="zdown", zso=True)
         self.AlignPointPos(self.Creator.Proxies_Head, self.HeadJoint)
         # _HeadTip
         self.HeadTipJoint = "%s_HeadTip_JNT" % name
         cmds.select(self.HeadJoint)
         cmds.joint(n=self.HeadTipJoint)
-        cmds.joint(e=True, oj="xyz", secondaryAxisOrient="zdown", zso=True)
         self.AlignPointPos(self.Creator.Proxies_HeadTip, self.HeadTipJoint)
         # Jaw
         self.JawJoint = "%s_Jaw_JNT" % name
@@ -217,8 +212,14 @@ class BipedRigging:
         lWristRotation = cmds.xform(self.Proxy_Wrist[1], q=True, ro=True)
 
         # Orient Joints
-        cmds.joint(self.RootJoint, e=True, oj="None", secondaryAxisOrient="yup", zso=True)
-
+        cmds.joint(self.RootJoint, e=True, oj="none", secondaryAxisOrient="yup", zso=True)
+        cmds.joint(self.spineJoints, e=True, oj="xyz", secondaryAxisOrient="zdown", zso=True)
+        cmds.joint(self.SpineTopJoint, e=True, oj="xyz", secondaryAxisOrient="zdown", zso=True)
+        cmds.joint(self.NeckJointTemp, e=True, oj="xyz", secondaryAxisOrient="zdown", zso=True)
+        cmds.joint(self.HeadJoint, e=True, oj="xyz", secondaryAxisOrient="zdown", zso=True)
+        cmds.joint(self.HeadTipJoint, e=True, oj="none", secondaryAxisOrient="yup", zso=True)
+        self.OrientJoints("L")
+        self.OrientJoints("R")
         pass
 
     def ArmatureArm(self, side):
@@ -341,4 +342,29 @@ class BipedRigging:
     def AlignPointPos(self, sou, tar):
         con = cmds.pointConstraint(sou, tar)
         cmds.delete(con)
+        pass
+
+    def OrientJoints(self, side):
+        sign = 1
+        sideindex = 0
+        if side == "L":
+            sign = 1
+            sideindex = 0
+        else:
+            sign = -1
+            sideindex = 1
+
+        HipJoint = self.name + "_" + side + "_Hip_JNT"
+        KneeJoint = self.name + "_" + side + "_Knee_JNT"
+        AnkleJoint = self.name + "_" + side + "_Ankle_JNT"
+
+        cmds.parent(KneeJoint, w=True)
+        cmds.parent(AnkleJoint, w=True)
+        Acon = cmds.aimConstraint(self.Proxy_Knee[sideindex], HipJoint, aimVector=[1, 0, 0],
+                                  upVector=[0, 1, 0], worldUpType="objectrotation", worldUpVector=[0, 0, 1],
+                                  worldUpObject=self.Proxy_Knee[sideindex])
+        cmds.delete(Acon)
+        cmds.makeIdentity(HipJoint, apply=True, r=1)
+        cmds.parent(KneeJoint, HipJoint)
+        cmds.parent(AnkleJoint, KneeJoint)
         pass
