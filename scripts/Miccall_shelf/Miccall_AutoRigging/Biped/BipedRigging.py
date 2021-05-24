@@ -211,6 +211,13 @@ class BipedRigging:
         lWristRotation = cmds.xform(self.Proxy_Wrist[0], q=True, ro=True)
         lWristRotation = cmds.xform(self.Proxy_Wrist[1], q=True, ro=True)
 
+        # show local axis
+        cmds.select(self.RootJoint, hi=True)
+        jointList = cmds.ls(sl=1, type="joint")
+        for jnt in jointList:
+            cmds.setAttr(jnt + ".displayLocalAxis", True)
+        cmds.select(clear=True)
+
         # Orient Joints
         cmds.joint(self.RootJoint, e=True, oj="none", secondaryAxisOrient="yup", zso=True)
         cmds.joint(self.spineJoints, e=True, oj="xyz", secondaryAxisOrient="zdown", zso=True)
@@ -281,12 +288,78 @@ class BipedRigging:
         cmds.delete(Pcon)
         cmds.makeIdentity(WristJoint, WristDummyJoint, apply=True, r=1)
 
-        # Thumb
-
-        # Hand
-
         # Forearm
 
+        # Thumb
+        cmds.select(cl=True)
+        cmds.select("Proxies_" + side + "_Thumb??")
+        ThumbList = cmds.ls(sl=True, objectsOnly=True)
+        count = len(ThumbList)
+        tips = "Proxies_" + side + "_ThumbJTip"
+        ThumbList.append(tips)
+        ThumbJNT_list = []
+        cmds.select(cl=True)
+        for i in range(0, count + 1):
+            if i > 0:
+                cmds.select(ThumbJNT_list[i - 1])
+            namesp = ThumbList[i].split("_")
+            newName = self.name + "_" + side + "_" + namesp[2] + "_JNT"
+            cmds.joint(n=newName)
+            ThumbJNT_list.append(newName)
+            Pcon = cmds.parentConstraint(ThumbList[i], newName)
+            cmds.delete(Pcon)
+        cmds.parent(ThumbJNT_list[0], WristJoint)
+        cmds.parent(WristJoint, w=True)
+        # Hand
+        """
+        select "RRA_lFinger?J1";
+        $lFingerJoints = `ls -sl`;
+        string $each;
+        $i = 1;
+        for ($each in $lFingerJoints)
+        {
+            select -cl;
+            joint -n ($name + "_lFinger" + $i + "J1");
+            parentConstraint ("RRA_lFinger" + $i + "J1") ($name + "_lFinger" + $i + "J1");
+            
+            select ($name + "_lFinger" + $i + "J1");
+            joint -n ($name + "_lFinger" + $i + "J2");
+            parentConstraint ("RRA_lFinger" + $i + "J2") ($name + "_lFinger" + $i + "J2");
+            
+            select ($name + "_lFinger" + $i + "J2");
+            joint -n ($name + "_lFinger" + $i + "J3");
+            parentConstraint ("RRA_lFinger" + $i + "J3") ($name + "_lFinger" + $i + "J3");
+            
+            select ($name + "_lFinger" + $i + "J3");
+            joint -n ($name + "_lFinger" + $i + "JTip");
+            parentConstraint ("RRA_lFinger" + $i + "JTip") ($name + "_lFinger" + $i + "JTip");
+            parent ($name + "_lFinger" + $i + "J1") ($name + "_lWristJ");
+            $i++;
+        }
+        """
+        cmds.select(cl=True)
+        cmds.select("Proxies_" + side + "_Finger_*_J1")
+        FingerList = cmds.ls(sl=True, objectsOnly=True)
+        for Finger in FingerList:
+            cmds.select(Finger)
+            name = Finger[0:-1]
+            cmds.select(name + "?")
+            jointlist = cmds.ls(sl=True)
+            tip = name + "Tip"
+            jointlist.append(tip)
+            cmds.select(self.Proxy_Wrist)
+            i = 0
+            FinList = []
+            for jo in jointlist:
+                if i > 0:
+                    cmds.select()
+                namesp = jo.split("_")
+                newName = self.name + "_" + side + "_" + namesp[2] + "_JNT"
+                cmds.joint(jo)
+                Pcon = cmds.parentConstraint(jointlist[i], jo)
+                cmds.delete(Pcon)
+                FinList.append()
+                i += 1
         pass
 
     def ArmatureLeg(self, side):
@@ -358,13 +431,21 @@ class BipedRigging:
         KneeJoint = self.name + "_" + side + "_Knee_JNT"
         AnkleJoint = self.name + "_" + side + "_Ankle_JNT"
 
+        # HipJoint
         cmds.parent(KneeJoint, w=True)
-        cmds.parent(AnkleJoint, w=True)
         Acon = cmds.aimConstraint(self.Proxy_Knee[sideindex], HipJoint, aimVector=[1, 0, 0],
                                   upVector=[0, 1, 0], worldUpType="objectrotation", worldUpVector=[0, 0, 1],
                                   worldUpObject=self.Proxy_Knee[sideindex])
         cmds.delete(Acon)
         cmds.makeIdentity(HipJoint, apply=True, r=1)
         cmds.parent(KneeJoint, HipJoint)
-        cmds.parent(AnkleJoint, KneeJoint)
+
+        KneeLength = cmds.xform(KneeJoint, q=True, t=True)
+        AnkleLength = cmds.xform(AnkleJoint, q=True, t=True)
+        cmds.select(AnkleJoint)
+        cmds.joint(e=True, oj="xyz", secondaryAxisOrient="yup", ch=True, zso=True)
+
+        # FOREARMS
+        # cmds.setAttr("_lForearmJ.jointOrient", 0, 0, 0);
+        # cmds.setAttr("_rForearmJ.jointOrient", 0, 0, 0);
         pass
