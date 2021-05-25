@@ -15,13 +15,17 @@ except ImportError:
 
 if mayaveersion == "2022":
     import importlib
+    from .Biped import ProxyCreate
     from .Biped import Create
     from .Biped import BipedRigging
     importlib.reload(BipedRigging)
     importlib.reload(Create)
+    importlib.reload(ProxyCreate)
 else:
     from Biped import Create
+    from Biped import ProxyCreate
     from Biped import BipedRigging
+    reload(ProxyCreate)
     reload(Create)
     reload(BipedRigging)
 dialog = None
@@ -57,7 +61,9 @@ class AutoRigging_GUI(MayaQWidgetDockableMixin, qw.QDialog):
         pass
 
     def CreateBiped_Func(self):
-        self.creator = Create.CreateBipedJoints()
+        self.creator = ProxyCreate.BipedProxyCreator()
+        self.creator.MainProcessing()
+        # self.creator = Create.CreateBipedJoints()
         pass
 
     def Test_Func(self):

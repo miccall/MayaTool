@@ -183,7 +183,7 @@ class CreateBipedJoints:
 
     def CreateProxies(self):
         thumbsOn = True
-        fingersNum = 5
+        fingersNum = 4
         toesNum = 1
         spineNum = 4
         neckNum = 2
