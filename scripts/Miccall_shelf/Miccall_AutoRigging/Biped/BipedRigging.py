@@ -211,13 +211,6 @@ class BipedRigging:
         lWristRotation = cmds.xform(self.Proxy_Wrist[0], q=True, ro=True)
         lWristRotation = cmds.xform(self.Proxy_Wrist[1], q=True, ro=True)
 
-        # show local axis
-        cmds.select(self.RootJoint, hi=True)
-        jointList = cmds.ls(sl=1, type="joint")
-        for jnt in jointList:
-            cmds.setAttr(jnt + ".displayLocalAxis", True)
-        cmds.select(clear=True)
-
         # Orient Joints
         cmds.joint(self.RootJoint, e=True, oj="none", secondaryAxisOrient="yup", zso=True)
         cmds.joint(self.spineJoints, e=True, oj="xyz", secondaryAxisOrient="zdown", zso=True)
@@ -245,8 +238,8 @@ class BipedRigging:
         cmds.joint(n=ClavicleJoint)
         Pcon = cmds.parentConstraint(self.Proxy_Clavicle[sideindex], ClavicleJoint)
         cmds.delete(Pcon)
-        Acon = cmds.aimConstraint(self.Proxy_Shoulder[sideindex], ClavicleJoint, aimVector=[1, 0, 0],
-                                  upVector=[0, 1, 0], worldUpType="objectrotation", worldUpVector=[0, 1, 0],
+        Acon = cmds.aimConstraint(self.Proxy_Shoulder[sideindex], ClavicleJoint, aimVector=[1 * sign, 0, 0],
+                                  upVector=[0, 1 * sign, 0], worldUpType="objectrotation", worldUpVector=[0, 1, 0],
                                   worldUpObject=self.Proxy_Clavicle[sideindex])
         cmds.delete(Acon)
         cmds.makeIdentity(ClavicleJoint, apply=True, r=1)
@@ -257,8 +250,8 @@ class BipedRigging:
         cmds.joint(n=ShoulderJoint)
         Pcon = cmds.parentConstraint(self.Proxy_Shoulder[sideindex], ShoulderJoint)
         cmds.delete(Pcon)
-        Acon = cmds.aimConstraint(self.Proxy_Elbow[sideindex], ShoulderJoint, aimVector=[1, 0, 0],
-                                  upVector=[0, 1, 0], worldUpType="objectrotation", worldUpVector=[0, 1, 0],
+        Acon = cmds.aimConstraint(self.Proxy_Elbow[sideindex], ShoulderJoint, aimVector=[1 * sign, 0, 0],
+                                  upVector=[0, 1 * sign, 0], worldUpType="objectrotation", worldUpVector=[0, 1, 0],
                                   worldUpObject=self.Proxy_Shoulder[sideindex])
         cmds.delete(Acon)
         cmds.makeIdentity(ClavicleJoint, apply=True, r=1)
@@ -269,8 +262,8 @@ class BipedRigging:
         cmds.joint(n=ElbowJoint)
         Pcon = cmds.parentConstraint(self.Proxy_Elbow[sideindex], ElbowJoint)
         cmds.delete(Pcon)
-        Acon = cmds.aimConstraint(self.Proxy_Wrist[sideindex], ElbowJoint, aimVector=[1, 0, 0],
-                                  upVector=[0, 1, 0], worldUpType="objectrotation", worldUpVector=[0, 1, 0],
+        Acon = cmds.aimConstraint(self.Proxy_Wrist[sideindex], ElbowJoint, aimVector=[1 * sign, 0, 0],
+                                  upVector=[0, 1 * sign, 0], worldUpType="objectrotation", worldUpVector=[0, 1, 0],
                                   worldUpObject=self.Proxy_Elbow[sideindex])
         cmds.delete(Acon)
         cmds.makeIdentity(ClavicleJoint, apply=True, r=1)
@@ -286,6 +279,8 @@ class BipedRigging:
         cmds.joint(n=WristDummyJoint)
         Pcon = cmds.parentConstraint(self.Proxy_Wrist[sideindex], WristDummyJoint)
         cmds.delete(Pcon)
+        if side == "R":
+            cmds.rotate(180, 0, 0, WristJoint, WristDummyJoint, r=True, os=True)
         cmds.makeIdentity(WristJoint, WristDummyJoint, apply=True, r=1)
 
         # Thumb
@@ -308,6 +303,7 @@ class BipedRigging:
             cmds.delete(Pcon)
         cmds.parent(ThumbJNT_list[0], WristJoint)
         cmds.parent(WristJoint, w=True)
+
         # Hand
         cmds.select(cl=True)
         cmds.select("Proxies_" + side + "_Finger_*_J1")
@@ -342,9 +338,11 @@ class BipedRigging:
         cmds.joint(n=Palm)
         Pcon = cmds.parentConstraint(self.Proxy_Palm[sideindex], Palm)
         cmds.delete(Pcon)
+        if side == "R":
+            cmds.rotate(180, 0, 0, Palm, r=True, os=True)
+        cmds.makeIdentity(Palm, apply=True, r=1)
         for Finger in FingersFirstJointList:
             cmds.parent(Finger, Palm)
-        cmds.makeIdentity(Palm, apply=True, r=1)
 
         # Forearm
         cmds.select(cl=True)
@@ -353,6 +351,9 @@ class BipedRigging:
         Pcon = cmds.parentConstraint(WristJoint, ElbowJoint, Forearm)
         cmds.delete(Pcon)
         cmds.parent(Forearm, ElbowJoint)
+        if side == "R":
+            cmds.rotate(180, 0, 0, Forearm, r=True, os=True)
+        cmds.makeIdentity(Forearm, apply=True, r=1)
         pass
 
     def ArmatureLeg(self, side):
@@ -440,6 +441,20 @@ class BipedRigging:
 
         # FOREARM
         cmds.setAttr("%s.jointOrient" % ForearmJoint, 0, 0, 0)
+
+        # Thumb
+        cmds.select("Mic_" + side + "_ThumbJ?_JNT")
+        ThumbJNT_list = cmds.ls(sl=True)
+        for thumb in ThumbJNT_list:
+            cmds.select(thumb)
+            cmds.joint(e=True, oj="xzy", secondaryAxisOrient="xdown", ch=True, zso=True)
+
+        # FIX WRIST ORIENTATIONS
+        WristJoint = self.name + "_" + side + "_Wrist_JNT"
+        WristDummyJoint = self.name + "_" + side + "_WristDummy_JNT"
+        Ocon = cmds.orientConstraint(WristJoint, WristDummyJoint)
+        cmds.delete(Ocon)
+        cmds.makeIdentity(WristDummyJoint, apply=True, t=1, r=1, s=1)
 
         # Toe
         ToeJoint = self.name + "_" + side + "_Toe_JNT"
