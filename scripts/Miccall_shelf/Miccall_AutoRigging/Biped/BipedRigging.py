@@ -288,8 +288,6 @@ class BipedRigging:
         cmds.delete(Pcon)
         cmds.makeIdentity(WristJoint, WristDummyJoint, apply=True, r=1)
 
-        # Forearm
-
         # Thumb
         cmds.select(cl=True)
         cmds.select("Proxies_" + side + "_Thumb??")
@@ -311,35 +309,10 @@ class BipedRigging:
         cmds.parent(ThumbJNT_list[0], WristJoint)
         cmds.parent(WristJoint, w=True)
         # Hand
-        """
-        select "RRA_lFinger?J1";
-        $lFingerJoints = `ls -sl`;
-        string $each;
-        $i = 1;
-        for ($each in $lFingerJoints)
-        {
-            select -cl;
-            joint -n ($name + "_lFinger" + $i + "J1");
-            parentConstraint ("RRA_lFinger" + $i + "J1") ($name + "_lFinger" + $i + "J1");
-            
-            select ($name + "_lFinger" + $i + "J1");
-            joint -n ($name + "_lFinger" + $i + "J2");
-            parentConstraint ("RRA_lFinger" + $i + "J2") ($name + "_lFinger" + $i + "J2");
-            
-            select ($name + "_lFinger" + $i + "J2");
-            joint -n ($name + "_lFinger" + $i + "J3");
-            parentConstraint ("RRA_lFinger" + $i + "J3") ($name + "_lFinger" + $i + "J3");
-            
-            select ($name + "_lFinger" + $i + "J3");
-            joint -n ($name + "_lFinger" + $i + "JTip");
-            parentConstraint ("RRA_lFinger" + $i + "JTip") ($name + "_lFinger" + $i + "JTip");
-            parent ($name + "_lFinger" + $i + "J1") ($name + "_lWristJ");
-            $i++;
-        }
-        """
         cmds.select(cl=True)
         cmds.select("Proxies_" + side + "_Finger_*_J1")
         FingerList = cmds.ls(sl=True, objectsOnly=True)
+        FingersFirstJointList = []
         for Finger in FingerList:
             cmds.select(Finger)
             name = Finger[0:-1]
@@ -347,19 +320,39 @@ class BipedRigging:
             jointlist = cmds.ls(sl=True)
             tip = name + "Tip"
             jointlist.append(tip)
-            cmds.select(self.Proxy_Wrist)
+            cmds.select(WristJoint)
             i = 0
             FinList = []
             for jo in jointlist:
+                namesp = jo.split("_")  # Proxies_L_Finger_1_J1
+                newName = self.name + "_" + side + "_" + namesp[2] + namesp[3] + namesp[4] + "_JNT"
                 if i > 0:
-                    cmds.select()
-                namesp = jo.split("_")
-                newName = self.name + "_" + side + "_" + namesp[2] + "_JNT"
-                cmds.joint(jo)
-                Pcon = cmds.parentConstraint(jointlist[i], jo)
+                    cmds.select(FinList[i - 1])
+                else:
+                    FingersFirstJointList.append(newName)
+                cmds.joint(n=newName)
+                Pcon = cmds.parentConstraint(jointlist[i], newName)
                 cmds.delete(Pcon)
-                FinList.append()
+                FinList.append(newName)
                 i += 1
+
+        # Palm
+        cmds.select(WristJoint)
+        Palm = self.name + "_" + side + "_Palm_JNT"
+        cmds.joint(n=Palm)
+        Pcon = cmds.parentConstraint(self.Proxy_Palm[sideindex], Palm)
+        cmds.delete(Pcon)
+        for Finger in FingersFirstJointList:
+            cmds.parent(Finger, Palm)
+        cmds.makeIdentity(Palm, apply=True, r=1)
+
+        # Forearm
+        cmds.select(cl=True)
+        Forearm = self.name + "_" + side + "_Forearm_JNT"
+        cmds.joint(n=Forearm)
+        Pcon = cmds.parentConstraint(WristJoint, ElbowJoint, Forearm)
+        cmds.delete(Pcon)
+        cmds.parent(Forearm, ElbowJoint)
         pass
 
     def ArmatureLeg(self, side):
@@ -430,7 +423,7 @@ class BipedRigging:
         HipJoint = self.name + "_" + side + "_Hip_JNT"
         KneeJoint = self.name + "_" + side + "_Knee_JNT"
         AnkleJoint = self.name + "_" + side + "_Ankle_JNT"
-
+        ForearmJoint = self.name + "_" + side + "_Forearm_JNT"
         # HipJoint
         cmds.parent(KneeJoint, w=True)
         Acon = cmds.aimConstraint(self.Proxy_Knee[sideindex], HipJoint, aimVector=[1, 0, 0],
@@ -445,7 +438,35 @@ class BipedRigging:
         cmds.select(AnkleJoint)
         cmds.joint(e=True, oj="xyz", secondaryAxisOrient="yup", ch=True, zso=True)
 
-        # FOREARMS
-        # cmds.setAttr("_lForearmJ.jointOrient", 0, 0, 0);
-        # cmds.setAttr("_rForearmJ.jointOrient", 0, 0, 0);
+        # FOREARM
+        cmds.setAttr("%s.jointOrient" % ForearmJoint, 0, 0, 0)
+
+        # Toe
+        ToeJoint = self.name + "_" + side + "_Toe_JNT"
+        cmds.select(ToeJoint)
+        cmds.joint(e=True, oj="none", ch=True, zso=True)
+        cmds.rotate(0, 90, 0, ToeJoint)
+        cmds.makeIdentity(HipJoint, apply=True, r=1)
+        cmds.select(cl=True)
+
+        # Fix right side
+        if side == "R":
+            Clavicle = self.name + "_" + side + "_Clavicle_JNT"
+            Clavicle_R_Orient = cmds.getAttr("%s.jointOrient" % Clavicle)
+            Hip_R_Orient = cmds.getAttr("%s.jointOrient" % HipJoint)
+            cmds.setAttr("%s.jointOrientX" % HipJoint, Hip_R_Orient[0][0] * -1)
+            cmds.setAttr("%s.jointOrientY" % HipJoint, Hip_R_Orient[0][1] * -1)
+            cmds.setAttr("%s.jointOrientZ" % HipJoint, Hip_R_Orient[0][2] + 180)
+
+            cmds.select(KneeJoint, hi=True)
+            reOrientJoints = cmds.ls(sl=True)
+            for currentJoint in reOrientJoints:
+                currentOrient = cmds.getAttr(currentJoint + ".jointOrient")
+                currentPos = cmds.getAttr(currentJoint + ".tx")
+                print(currentOrient)
+                print(currentPos)
+                cmds.setAttr("%s.jointOrientX" % currentJoint, currentOrient[0][0] * -1)
+                cmds.setAttr("%s.jointOrientY" % currentJoint, currentOrient[0][1] * -1)
+                cmds.setAttr("%s.tx" % currentJoint, currentPos * -1)
+
         pass
