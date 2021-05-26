@@ -18,16 +18,20 @@ if mayaveersion == "2022":
     from .Biped import ProxyCreate
     from .Biped import Create
     from .Biped import BipedRigging
+    from .Biped import ArmatureCreator
     importlib.reload(BipedRigging)
     importlib.reload(Create)
     importlib.reload(ProxyCreate)
+    importlib.reload(ArmatureCreator)
 else:
     from Biped import Create
     from Biped import ProxyCreate
     from Biped import BipedRigging
+    from Biped import ArmatureCreator
     reload(ProxyCreate)
     reload(Create)
     reload(BipedRigging)
+    reload(ArmatureCreator)
 dialog = None
 
 
@@ -54,10 +58,18 @@ class AutoRigging_GUI(MayaQWidgetDockableMixin, qw.QDialog):
         self.layout.addWidget(self.CreateBiped_Bt)
         self.CreateBiped_Bt.clicked.connect(self.CreateBiped_Func)
 
+        self.GenarateArmature_Bt = qw.QPushButton("Armature")
+        self.layout.addWidget(self.GenarateArmature_Bt)
+        self.GenarateArmature_Bt.clicked.connect(self.GenArmature_Func)
+
         self.Test_Bt = qw.QPushButton("Test")
         self.layout.addWidget(self.Test_Bt)
         self.Test_Bt.clicked.connect(self.Test_Func)
+        pass
 
+    def GenArmature_Func(self):
+        self.Armature = ArmatureCreator.BipedArmatureCreator(self.creator)
+        self.Armature.MainProcessing()
         pass
 
     def CreateBiped_Func(self):
