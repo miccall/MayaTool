@@ -19,6 +19,7 @@ if mayaveersion == "2022":
     from .Biped import Create
     from .Biped import BipedRigging
     from .Biped import ArmatureCreator
+
     importlib.reload(BipedRigging)
     importlib.reload(Create)
     importlib.reload(ProxyCreate)
@@ -28,6 +29,7 @@ else:
     from Biped import ProxyCreate
     from Biped import BipedRigging
     from Biped import ArmatureCreator
+
     reload(ProxyCreate)
     reload(Create)
     reload(BipedRigging)
@@ -62,9 +64,17 @@ class AutoRigging_GUI(MayaQWidgetDockableMixin, qw.QDialog):
         self.layout.addWidget(self.GenarateArmature_Bt)
         self.GenarateArmature_Bt.clicked.connect(self.GenArmature_Func)
 
+        self.ControlRig_Bt = qw.QPushButton("ControlRig")
+        self.layout.addWidget(self.ControlRig_Bt)
+        self.ControlRig_Bt.clicked.connect(self.ControlRig_Func)
+
         self.Test_Bt = qw.QPushButton("Test")
         self.layout.addWidget(self.Test_Bt)
         self.Test_Bt.clicked.connect(self.Test_Func)
+        pass
+
+    def ControlRig_Func(self):
+        BipedRigging.BipedRigging(self.creator, self.Armature)
         pass
 
     def GenArmature_Func(self):
@@ -75,7 +85,6 @@ class AutoRigging_GUI(MayaQWidgetDockableMixin, qw.QDialog):
     def CreateBiped_Func(self):
         self.creator = ProxyCreate.BipedProxyCreator()
         self.creator.MainProcessing()
-        # self.creator = Create.CreateBipedJoints()
         pass
 
     def Test_Func(self):
