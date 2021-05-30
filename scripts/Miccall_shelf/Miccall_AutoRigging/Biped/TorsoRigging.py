@@ -285,20 +285,37 @@ class TorsoRigging:
         cmds.setAttr("%s.overrideRGBColors" % LayerName, 0)
 
     def InitData2(self):
-        self.SpineTemp01Joint = self.ArmatureData.RootJointTemp
-        split = self.SpineTemp01Joint.split("_")
+        split = self.ArmatureData.RootJointTemp.split("_")
         split2 = split[0:-1]
         self.name = split[0]
         self.spline = split[1]
         newName = "_".join(split2)
         self.SpineTemp01Joint_FKCtr = newName + "_FKCtr"
+        self.SpineTemp01Joint_FKCtr_GRP = self.SpineTemp01Joint_FKCtr + "_GRP"
+        self.SpineJoint_FKCtrList = [self.SpineTemp01Joint_FKCtr]
+        self.SpineJoint_FKCtrGRPList = [self.SpineTemp01Joint_FKCtr_GRP]
+        self.SpineTop_IKCtr = self.name + "_SpineTop_IKCtr"
+        self.SpineTop_IKCtr_GRPs = [self.SpineTop_IKCtr + "_GRP", self.SpineTop_IKCtr + "_GRP2"]
+        self.SpineMid_IKCtr = self.name + "_SpineMid_IKCtr"
+        self.SpineMid_IKCtr_GRPs = [self.SpineMid_IKCtr + "_GRP", self.SpineMid_IKCtr + "_GRP2"]
         self.SplineScale = 1
+
+        self.SpineLengthAimLctr = self.name + "_SpineLengthAimLctr"
+        self.SpineLengthTargetLctr = self.name + "_SpineLengthTargetLctr"
+        self.HeadLengthAimLctr = self.name + "_HeadLengthAimLctr"
+        self.HeadLengthTargetLctr = self.name + "_HeadLengthTargetLctr"
+        self.SpineTop_IKCtrOrientLctr = self.SpineTop_IKCtr + "_OrientLctr"
+
+        # Fetch
+        self.MainControl = self.name + "_Main_Ctr"
+        self.RootControl = self.name + "_Root_Ctr"
+        self.RootControlGRP = self.RootControl + "_GRP"
+        self.MainHipControl = self.name + "_MainHip_Ctr"
+        self.MainHipControlGRP = self.MainHipControl + "_GRP"
 
         pass
 
     def Lenght(self):
-        self.SpineLengthAimLctr = self.name + "_SpineLengthAimLctr"
-        self.SpineLengthTargetLctr = self.name + "_SpineLengthTargetLctr"
         cmds.spaceLocator(n=self.SpineLengthAimLctr)
         cmds.spaceLocator(n=self.SpineLengthTargetLctr)
         cmds.parent(self.SpineLengthTargetLctr, self.SpineLengthAimLctr)
@@ -306,13 +323,11 @@ class TorsoRigging:
         cmds.aimConstraint(self.ProxyData.Proxies_SpineTop, self.SpineLengthAimLctr,
                            aimVector=[0, 1, 0], upVector=[1, 0, 0], worldUpType="vector", worldUpVector=[1, 0, 0],
                            skip=['y', 'z'])
-        cmds.pointConstraint(self.ProxyData.Proxies_SpineTop,self.SpineLengthTargetLctr)
-        self.spineLength = cmds.getAttr(self.SpineLengthTargetLctr+".ty")
+        cmds.pointConstraint(self.ProxyData.Proxies_SpineTop, self.SpineLengthTargetLctr)
+        self.spineLength = cmds.getAttr(self.SpineLengthTargetLctr + ".ty")
         self.spineLength = self.spineLength / 2
         cmds.delete(self.SpineLengthAimLctr)
 
-        self.HeadLengthAimLctr = self.name + "_HeadLengthAimLctr"
-        self.HeadLengthTargetLctr = self.name + "_HeadLengthTargetLctr"
         cmds.spaceLocator(n=self.HeadLengthAimLctr)
         cmds.spaceLocator(n=self.HeadLengthTargetLctr)
         cmds.parent(self.HeadLengthTargetLctr, self.HeadLengthAimLctr)
@@ -321,8 +336,8 @@ class TorsoRigging:
         cmds.aimConstraint(self.ProxyData.Proxies_HeadTip, self.HeadLengthAimLctr,
                            aimVector=[0, 1, 0], upVector=[1, 0, 0], worldUpType="vector", worldUpVector=[1, 0, 0],
                            skip=['y', 'z'])
-        cmds.pointConstraint(self.ProxyData.Proxies_HeadTip,self.HeadLengthTargetLctr)
-        self.headLength = cmds.getAttr(self.HeadLengthTargetLctr+".ty")
+        cmds.pointConstraint(self.ProxyData.Proxies_HeadTip, self.HeadLengthTargetLctr)
+        self.headLength = cmds.getAttr(self.HeadLengthTargetLctr + ".ty")
         cmds.delete(self.HeadLengthAimLctr)
         pass
 
@@ -335,27 +350,15 @@ class TorsoRigging:
         for i, controlBone in enumerate(splineList):
             if i == 0:
                 # 创建一个 controlname 的控制器给 controlBone 。
-                cmds.circle(n=self.SpineTemp01Joint_FKCtr, c=(0, 0, 0), nr=(0, 0, 1), sw=360, r=1, d=3, ut=0, tol=0.01,
-                            s=8,
-                            ch=1)
-                cmds.move(0, 0, -2.4, "%s.cv[1]" % self.SpineTemp01Joint_FKCtr,
-                          "%s.cv[5]" % self.SpineTemp01Joint_FKCtr,
-                          r=True, os=True, wd=True)
-                cmds.move(0, 0, -2.25, "%s.cv[0]" % self.SpineTemp01Joint_FKCtr,
-                          "%s.cv[2]" % self.SpineTemp01Joint_FKCtr,
-                          "%s.cv[4]" % self.SpineTemp01Joint_FKCtr,
-                          "%s.cv[6]" % self.SpineTemp01Joint_FKCtr, r=True, os=True, wd=True)
-                cmds.move(0, 0, -1.8, "%s.cv[3]" % self.SpineTemp01Joint_FKCtr,
-                          "%s.cv[7]" % self.SpineTemp01Joint_FKCtr,
-                          r=True, os=True, wd=True)
+                CT.TorsoFKControl(self.SpineTemp01Joint_FKCtr)
                 cmds.delete(self.SpineTemp01Joint_FKCtr, ch=True)
-                controlGroup = "%s_GRP" % self.SpineTemp01Joint_FKCtr
-                cmds.group(n=controlGroup)
+                cmds.group(n=self.SpineTemp01Joint_FKCtr_GRP)
                 cmds.xform(os=True, piv=[0, 0, 0])
-                self.AlignPointPos(self.SpineTemp01Joint, controlGroup)
-                cmds.setAttr("%s.scale" % controlGroup, (self.SplineScale * 4.5), (self.SplineScale * 1.1),
+                self.AlignPointPos(self.ArmatureData.RootJointTemp, self.SpineTemp01Joint_FKCtr_GRP)
+                cmds.setAttr("%s.scale" % self.SpineTemp01Joint_FKCtr_GRP, (self.SplineScale * 4.5),
+                             (self.SplineScale * 1.1),
                              (self.SplineScale * 2.5))
-                cmds.makeIdentity(controlGroup, apply=True, t=0, s=1, r=1)
+                cmds.makeIdentity(self.SpineTemp01Joint_FKCtr_GRP, apply=True, t=0, s=1, r=1)
 
                 # 处理旋转问题
                 controlAlihnLoc = "%s%sAlign_Loc" % (name, spline)
@@ -365,7 +368,7 @@ class TorsoRigging:
                                             upVector=[1, 0, 0],
                                             worldUpType="vector", worldUpVector=[1, 0, 0])
                 cmds.delete(AimCon)
-                OriCon = cmds.orientConstraint(controlAlihnLoc, controlGroup)
+                OriCon = cmds.orientConstraint(controlAlihnLoc, self.SpineTemp01Joint_FKCtr_GRP)
                 cmds.delete(OriCon)
                 cmds.delete(controlAlihnLoc)
             else:
@@ -374,14 +377,19 @@ class TorsoRigging:
                 split2 = split[0:-1]
                 newName = "_".join(split2)
                 controlname = newName + "_FKCtr"
-                controlGroup2 = controlname + "_GRP"
-                cmds.duplicate(controlGroup, n=controlGroup2, rr=True)
-                Pcon = cmds.pointConstraint(controlBone, controlGroup2)
+                self.SpineJoint_FKCtrList.append(controlname)
+                controlGroup = controlname + "_GRP"
+                self.SpineJoint_FKCtrGRPList.append(controlGroup)
+                cmds.duplicate(self.SpineTemp01Joint_FKCtr_GRP, n=controlGroup, rr=True)
+                Pcon = cmds.pointConstraint(controlBone, controlGroup)
                 cmds.delete(Pcon)
-                cmds.makeIdentity(controlGroup2, apply=True, t=1, s=1, r=1)
-                cmds.select(controlGroup2)
+                cmds.makeIdentity(controlGroup, apply=True, t=1, s=1, r=1)
+                cmds.select(controlGroup)
                 cmds.pickWalk(d="down")
                 cmds.rename(controlname)
+
+        self.SpineTop_FKCtr = self.SpineJoint_FKCtrList[-1]
+        self.SpineTop_FKCtr_GRP = self.SpineJoint_FKCtrGRPList[-1]
         pass
 
     def MainProcess2(self):
@@ -389,57 +397,91 @@ class TorsoRigging:
         self.SpineControl()
         # spine Top
         controlBone = self.ArmatureData.SpineTopJoint
-        self.SpineTop_IKCtr = self.name + "_SpineTop_IKCtr"
-        curvename = self.SpineTop_IKCtr
-        mel.eval(
-            "curve -n " + curvename + " -d 1 -p 0 -5 0 -p -2 -3 0 -p -1 -3 0 -p -1 -1 0 -p -3 -1 0 -p -3 -2 0-p -5 0 0 -p -3 2 0 -p -3 1 0 -p -1 1 0 -p -1 3 0 -p -2 3 0 -p 0 5 0 -p 2 3 0-p 1 3 0 -p 1 1 0 -p 3 1 0 -p 3 2 0 -p 5 0 0 -p 3 -2 0 -p 3 -1 0 -p 1 -1 0 -p 1 -3 0 -p 2 -3 0 -p 0 -5 0 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9-k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -k 16 -k 17 -k 18 -k 19 -k 20 -k 21 -k 22 -k 23 -k 24;")
-        cmds.pickWalk(d="down")
-        cmds.rename(curvename + "Shape")
-        cmds.delete(curvename + "Shape", ch=True)
-        cmds.rotate(90, 0, 0, curvename)
-        cmds.makeIdentity(curvename, apply=True, t=1, s=1, r=1)
-        curveG = curvename + "_GRP"
-        curveG2 = curvename + "_GRP2"
-        cmds.group(curvename, n=curveG)
-        cmds.xform(os=True, piv=(0, 0, 0))
-        cmds.group(curveG, n=curveG2)
-        cmds.xform(os=True, piv=(0, 0, 0))
-        Pcon = cmds.pointConstraint(controlBone, curveG2)
+        CT.SpineTopCOntrol(self.SpineTop_IKCtr)
+        Pcon = cmds.pointConstraint(controlBone, self.SpineTop_IKCtr_GRPs[1])
         cmds.delete(Pcon)
-        cmds.makeIdentity(curveG2, apply=True, t=1, s=1, r=1)
+        cmds.makeIdentity(self.SpineTop_IKCtr + "_GRP2", apply=True, t=1, s=1, r=1)
 
         # Mid Curve
-        self.SpineMid_IKCtr = self.name + "_SpineMid_IKCtr"
-        curvename = self.SpineMid_IKCtr
-        mel.eval(
-            "curve -n " + curvename + " -d 1 -p 0 0 2.5 -p -1.5 0 1 -p -3.5 0 1 -p -3.5 0 -1 -p 3.5 0 -1 -p 3.5 0 1 -p 1.5 0 1 -p 0 0 2.5 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 ;")
-        cmds.pickWalk(d="down")
-        cmds.rename(curvename + "Shape")
-        cmds.delete(curvename + "Shape", ch=True)
-        cmds.makeIdentity(curvename, apply=True, t=1, s=1, r=1)
-        curveG = curvename + "_GRP"
-        curveG2 = curvename + "_GRP2"
-        cmds.group(curvename, n=curveG)
-        cmds.xform(os=True, piv=(0, 0, 0))
-        cmds.group(curveG, n=curveG2)
-        cmds.xform(os=True, piv=(0, 0, 0))
+        CT.TorsoMidControl(self.SpineMid_IKCtr)
+
+        # Find Mid Joint Ctr
+        self.MidJointControl = self.SpineJoint_FKCtrList[1]
 
         # CONSTRAIN TO FK CONTROLS
-        cmds.parentConstraint("Mic_SpineTemp02_FKCtr", self.SpineMid_IKCtr + "_GRP")
-        cmds.pointConstraint("Mic_SpineTop_FKCtr", self.SpineTop_IKCtr + "_GRP")
+        cmds.parentConstraint(self.MidJointControl, self.SpineMid_IKCtr_GRPs[0])
+        cmds.pointConstraint(self.SpineTop_FKCtr, self.SpineTop_IKCtr_GRPs[0])
 
         # CREATE LOCATOR FOR ANGLED SPLINE END
-        cmds.spaceLocator(n="Mic_SpineTop_IKCtr_Orient_Loc")
+        cmds.spaceLocator(n=self.SpineTop_IKCtrOrientLctr)
+        Ocon = cmds.orientConstraint(self.SpineTop_FKCtr, self.SpineTop_IKCtrOrientLctr)
+        cmds.delete(Ocon)
+        cmds.parentConstraint(self.MainControl, self.SpineTop_IKCtrOrientLctr, mo=True)
+        cmds.orientConstraint(self.SpineTop_IKCtrOrientLctr, self.SpineTop_FKCtr, self.SpineTop_IKCtr_GRPs[0])
+        cmds.setAttr(self.SpineTop_IKCtrOrientLctr + ".v", 0)
+        cmds.parent(self.SpineTop_IKCtrOrientLctr, self.MainControl)
+
+        # Spine Length
+        self.SpineStart_Loc = self.name + "_SpineStart_Loc"
+        self.SpineEnd_Loc = self.name + "_SpineEnd_Loc"
+        cmds.spaceLocator(n=self.SpineStart_Loc)
+        cmds.spaceLocator(n=self.SpineEnd_Loc)
+        cmds.parent(self.SpineEnd_Loc, self.SpineStart_Loc)
+        cmds.pointConstraint(self.RootControl, self.SpineStart_Loc)
+        cmds.aimConstraint(self.SpineTop_IKCtr, self.SpineStart_Loc, offset=[0, 0, 0], weight=1, aimVector=[0, 1, 0],
+                           upVector=[0, 1, 0], worldUpType="none")
+        cmds.pointConstraint(self.SpineTop_IKCtr, self.SpineEnd_Loc)
+
+        # Ribbon
+        self.Spine_Ribbon = self.name + "_Spine_Ribbon"
+        self.Spine_RibbonBlend = self.name + "_Spine_RibbonBlend"
+        self.Spine_RibbonBlendShape = self.name + "_Spine_RibbonBlendShape"
+        self.spineNum = len(self.SpineJoint_FKCtrList) - 1
+        cmds.nurbsPlane(n=self.Spine_Ribbon, p=[0, 0, 0], ax=[0, 0, 1], w=1, lr=3, d=3, u=1, v=self.spineNum, ch=1)
+        cmds.rebuildSurface(self.Spine_Ribbon, ch=1, rpo=1, rt=0, end=1, kr=2, kcp=0, kc=0, su=1, du=1, sv=2, dv=3,
+                            tol=0.01, fr=0, dir=0)
+        cmds.delete(ch=True)
+        self.Spine_RibbonClusters = [self.Spine_Ribbon + "_L_Cluster", self.Spine_Ribbon + "_R_Cluster"]
+        self.Spine_RibbonClusterGRPs = [self.Spine_RibbonClusters[0] + "_GRP", self.Spine_RibbonClusters[1] + "_GRP"]
+        cmds.duplicate(self.Spine_Ribbon, n=self.Spine_RibbonBlend, rr=True)
+        self.RibbonCluster("L")
+        self.RibbonCluster("R")
+        cmds.select(self.Spine_RibbonBlend, self.Spine_Ribbon)
+        cmds.blendShape(n=self.Spine_RibbonBlendShape, tc=0)
+        cmds.setAttr(self.Spine_RibbonBlendShape + "1." + self.Spine_RibbonBlend, 1)
+        cmds.group(self.Spine_RibbonClusters[0], n=self.Spine_RibbonClusterGRPs[0])
+        cmds.xform(os=True, piv=[0, 0, 0])
+        cmds.group(self.Spine_RibbonClusters[1], n=self.Spine_RibbonClusterGRPs[1])
+        cmds.xform(os=True, piv=[0, 0, 0])
 
         """
-        spaceLocator -n ($name + $splineEndMasterC + "_OrientLctr");
-        delete `orientConstraint  ($name + $splineEndC) ($name + $splineEndMasterC + "_OrientLctr")`;
-        parentConstraint -mo ($name + "_MainC") ($name + $splineEndMasterC + "_OrientLctr");
-        orientConstraint ($name + $splineEndMasterC + "_OrientLctr") ($name + $splineEndC) ($name + $splineEndMasterC + "G");
-        setAttr ($name + $splineEndMasterC + "_OrientLctr.v") 0;
-        parent ($name + $splineEndMasterC + "_OrientLctr")  ($name + "_MainC");
+        $startPos = `xform -q -ws -rp ("RRA_ROOT")`;
+        $EndPos = `xform -q -ws -rp ("RRA_SpineTop")`;
+        select ("RRA_Spine"+"??");
+        $splineJoints = `ls -sl -type "transform"`;
+        $splineSize = `size $splineJoints`;
+        select -add ("RRA_SpineTop");
+        $splineProxies = `ls -sl`;
+        $vertebrae = `size $splineProxies`;
         """
-        # Root
+
+        pass
+
+    def RibbonCluster(self, side):
+        sign = 1
+        sideindex = 0
+        if side == "L":
+            sign = 1
+            sideindex = 0
+        else:
+            sign = -1
+            sideindex = 1
+
+        cmds.select(self.Spine_RibbonBlend + ".cv[%s][*]" % (1 - sideindex))
+        cmds.cluster(envelope=1)
+        cmds.rename(self.Spine_RibbonClusters[sideindex])
+        cmds.move(0, 0, 0, self.Spine_RibbonClusters[sideindex] + ".scalePivot",
+                  self.Spine_RibbonClusters[sideindex] + ".rotatePivot")
 
         pass
 

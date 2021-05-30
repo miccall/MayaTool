@@ -7,10 +7,10 @@ import maya.mel as mel
 import sys
 
 
-def ReSetShapeName(curvename):
-    for shape in cmds.listRelatives(curvename, s=True, f=True) or []:
+def ReSetShapeName(name):
+    for shape in cmds.listRelatives(name, s=True, f=True) or []:
         print(shape)
-        cmds.rename(shape, "%sShape" % curvename)
+        cmds.rename(shape, "%sShape" % name)
 
 
 class ControllerTool:
@@ -146,3 +146,55 @@ class ControllerTool:
         cmds.move(0, -0.4, 0, name + ".cv[3]", name + ".cv[7]", r=True, os=True, wd=True)
         nameGRP = name + "_GRP"
         cmds.group(name, n=nameGRP)
+
+    @staticmethod
+    def TorsoFKControl(name):
+        cmds.circle(n=name, c=(0, 0, 0), nr=(0, 0, 1), sw=360, r=1, d=3, ut=0, tol=0.01,
+                    s=8,
+                    ch=1)
+        cmds.move(0, 0, -2.4, "%s.cv[1]" % name,
+                  "%s.cv[5]" % name,
+                  r=True, os=True, wd=True)
+        cmds.move(0, 0, -2.25, "%s.cv[0]" % name,
+                  "%s.cv[2]" % name,
+                  "%s.cv[4]" % name,
+                  "%s.cv[6]" % name, r=True, os=True, wd=True)
+        cmds.move(0, 0, -1.8, "%s.cv[3]" % name,
+                  "%s.cv[7]" % name,
+                  r=True, os=True, wd=True)
+        pass
+
+    @staticmethod
+    def SpineTopCOntrol(name):
+        mel.eval(
+            "curve -n " + name + " -d 1 -p 0 -5 0 -p -2 -3 0 -p -1 -3 0 -p -1 -1 0 -p -3 -1 0 -p -3 -2 0-p -5 0 0 -p -3 2 0 -p -3 1 0 -p -1 1 0 -p -1 3 0 -p -2 3 0 -p 0 5 0 -p 2 3 0-p 1 3 0 -p 1 1 0 -p 3 1 0 -p 3 2 0 -p 5 0 0 -p 3 -2 0 -p 3 -1 0 -p 1 -1 0 -p 1 -3 0 -p 2 -3 0 -p 0 -5 0 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 -k 8 -k 9-k 10 -k 11 -k 12 -k 13 -k 14 -k 15 -k 16 -k 17 -k 18 -k 19 -k 20 -k 21 -k 22 -k 23 -k 24;")
+        cmds.pickWalk(d="down")
+        cmds.rename(name + "Shape")
+        cmds.delete(name + "Shape", ch=True)
+        cmds.rotate(90, 0, 0, name)
+        cmds.makeIdentity(name, apply=True, t=1, s=1, r=1)
+        curveG = name + "_GRP"
+        curveG2 = name + "_GRP2"
+        cmds.group(name, n=curveG)
+        cmds.xform(os=True, piv=(0, 0, 0))
+        cmds.group(curveG, n=curveG2)
+        cmds.xform(os=True, piv=(0, 0, 0))
+        pass
+
+    @staticmethod
+    def TorsoMidControl(name):
+        mel.eval(
+            "curve -n " + name + " -d 1 -p 0 0 2.5 -p -1.5 0 1 -p -3.5 0 1 -p -3.5 0 -1 -p 3.5 0 -1 -p 3.5 0 1 -p 1.5 0 1 -p 0 0 2.5 -k 0 -k 1 -k 2 -k 3 -k 4 -k 5 -k 6 -k 7 ;")
+        cmds.pickWalk(d="down")
+        cmds.rename(name + "Shape")
+        cmds.delete(name + "Shape", ch=True)
+        cmds.makeIdentity(name, apply=True, t=1, s=1, r=1)
+        curveG = name + "_GRP"
+        curveG2 = name + "_GRP2"
+        cmds.group(name, n=curveG)
+        cmds.xform(os=True, piv=(0, 0, 0))
+        cmds.group(curveG, n=curveG2)
+        cmds.xform(os=True, piv=(0, 0, 0))
+        pass
+
+

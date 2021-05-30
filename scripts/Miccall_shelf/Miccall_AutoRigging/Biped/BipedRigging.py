@@ -135,26 +135,26 @@ class BipedRigging:
         self.Proxy_Ball = [self.Creator.Proxies_L_Ball, self.Creator.Proxies_R_Ball]
         self.Proxy_Toe = [self.Creator.Proxies_L_Toe, self.Creator.Proxies_R_Toe]
         """
+        self.MainControl = self.name + "_Main_Ctr"
+        self.RootControl = self.name + "_Root_Ctr"
+        self.RootControlGRP = self.RootControl + "_GRP"
+        self.MainHipsControl = self.name + "_MainHip_Ctr"
+        self.MainHipsControlGRP = self.MainHipsControl + "_GRP"
         pass
 
     def MainRig(self):
         # Main
-        self.MainControl = self.name + "_Main_Ctr"
         self.ControllerTool.MainControl(self.MainControl)
         # ROOT
-        self.RootControl = self.name + "Root_Ctr"
         self.ControllerTool.CircleControl(self.RootControl)
         cmds.scale(4, 4, 4, self.RootControl)
         cmds.makeIdentity(self.RootControl, apply=True, s=1)
-        self.RootControlGRP = self.RootControl + "_GRP"
         cmds.group(n=self.RootControlGRP)
         cmds.parent(self.RootControlGRP, self.ArmatureData.RootJoint)
         cmds.makeIdentity(apply=False, t=1, s=1)
         cmds.parent(self.RootControlGRP, w=True)
         cmds.delete(self.RootControl, ch=True)
         # MainHip
-        self.MainHipsControl = self.name + "_MainHipC"
-        self.MainHipsControlGRP = self.MainHipsControl + "_GRP"
         self.ControllerTool.HipsControl(self.MainHipsControl)
         cmds.parent(self.MainHipsControlGRP, self.ArmatureData.RootJoint)
         cmds.makeIdentity(apply=False, t=1, s=1)
