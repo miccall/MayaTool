@@ -431,6 +431,8 @@ class TorsoRigging:
         cmds.aimConstraint(self.SpineTop_IKCtr, self.SpineStart_Loc, offset=[0, 0, 0], weight=1, aimVector=[0, 1, 0],
                            upVector=[0, 1, 0], worldUpType="none")
         cmds.pointConstraint(self.SpineTop_IKCtr, self.SpineEnd_Loc)
+        self.SpineStart_LocPos = cmds.xform(self.SpineStart_Loc, q=True, ws=True, rp=True)
+        self.SpineEnd_LocPos = cmds.xform(self.SpineEnd_Loc, q=True, ws=True, rp=True)
 
         # Ribbon
         self.Spine_Ribbon = self.name + "_Spine_Ribbon"
@@ -464,7 +466,124 @@ class TorsoRigging:
         $splineProxies = `ls -sl`;
         $vertebrae = `size $splineProxies`;
         """
+        # region Create Spine Curve
+        # create & rebuild Spine Curve
+        self.SpineCurve = self.name + "_Spine_Spline_Btm"
+        self.SpineCurveTop = self.name + "_Spine_Spline_Top"
+        mel.eval("curve -n " + self.SpineCurve + " -d 1 -p %s %s %s -p %s %s %s;" % (
+            self.SpineStart_LocPos[0], self.SpineStart_LocPos[1], self.SpineStart_LocPos[2],
+            self.SpineEnd_LocPos[0], self.SpineEnd_LocPos[1], self.SpineEnd_LocPos[2]))
+        cmds.rebuildCurve(self.SpineCurve, ch=0, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=self.spineNum - 1, d=3,
+                          tol=0)
+        SpineJointList = [self.ArmatureData.RootJoint]
+        SpineJointList += self.ArmatureData.SpineJointList
+        # mapping pos
+        for i, each in enumerate(SpineJointList):
+            SpinePos = cmds.xform(each, q=True, rp=True, ws=True)
+            cmds.move(SpinePos[0], SpinePos[1], SpinePos[2], self.SpineCurve + ".cv[%s]" % i, ws=True)
 
+        # normalized
+        cmds.select(self.SpineCurve)
+        cmds.pickWalk(d="down")
+        cmds.rename(self.SpineCurve + "Shape")
+
+        # cut half
+        cmds.detachCurve(self.SpineCurve + ".u[0.5]", n=self.SpineCurveTop, ch=0, cos=True, rpo=1)
+        cmds.rename(self.SpineCurveTop + "1", self.SpineCurveTop)
+        cmds.rebuildCurve(self.SpineCurve, ch=0, rpo=1, rt=0, end=1, kr=1, kcp=0, kep=0, kt=0, s=1, d=3,
+                          tol=0.000328084)
+        cmds.rebuildCurve(self.SpineCurveTop, ch=0, rpo=1, rt=0, end=1, kr=1, kcp=0, kep=0, kt=0, s=1, d=3,
+                          tol=0.000328084)
+
+        # Path followed locator
+        SpineJointList.pop()  # last one
+        SpineJointList.pop(0)  # first one
+        count = len(SpineJointList)
+        self.SpineCurveLocList = []
+
+        # Create path loc
+        for i, each in enumerate(SpineJointList):
+            name = self.name + "_Spine_" + str(i) + "Curve_Loc_GRP"
+            nameGRP = name + "_GRP"
+            cmds.group(em=True, n=nameGRP)
+            self.SpineCurveLocList.append(name)
+            mapPath = each + "_MapPath"
+            if (i + 1) <= ((count + 1) / 2):
+                cmds.pathAnimation(nameGRP, self.SpineCurve, fractionMode=True, follow=False, n=mapPath)
+                cmds.cutKey(mapPath, cl=True, at="u")
+                v = float(i + 1) / ((count + 1) / 2)
+                print("BTM : v : " + str(v))
+                if v == 1:
+                    v = 0.999
+                cmds.setAttr(mapPath + ".uValue", v)
+            else:
+                cmds.pathAnimation(nameGRP, self.SpineCurveTop, fractionMode=True, follow=False, n=mapPath)
+                cmds.cutKey(mapPath, cl=True, at="u")
+                v = float(float(i + 1) - ((count + 1) / 2)) / ((count + 1) / 2)
+                print("TOP : v : " + str(v))
+                if v == 1:
+                    v = 0.999
+                cmds.setAttr(mapPath + ".uValue", v)
+
+            cmds.spaceLocator(n=name)
+            cmds.parent(name, nameGRP)
+            Pcon = cmds.parentConstraint(self.SpineJoint_FKCtrList[i], name)
+            cmds.delete(Pcon)
+
+        # constraint
+        for CurveLoc in self.SpineCurveLocList:
+            CurveLoc += "_GRP"
+            cmds.orientConstraint(self.MainHipControl, CurveLoc, mo=True)
+            cmds.scaleConstraint(self.MainControl, CurveLoc, mo=True)
+            cmds.setAttr(CurveLoc + ".v", 0)
+
+        splineStartPos = cmds.xform(self.ProxyData.Proxies_Root, q=True, ws=True, rp=True)
+        splineEndPos = cmds.xform(self.ProxyData.Proxies_SpineTop, q=True, ws=True, rp=True)
+        SpineCenterPos = cmds.xform(self.SpineCurveTop + ".cv[0]", q=True, ws=True, t=True)
+
+        # Cluster
+        self.SpineCurve_BtmClstr = self.SpineCurve + "_Btm_Cluster"
+        self.SpineCurve_TopClstr = self.SpineCurve + "_Top_Cluster"
+        self.SpineCurveTop_BtmClstr = self.SpineCurveTop + "_Btm_Cluster"
+        self.SpineCurveTop_TopClstr = self.SpineCurveTop + "_Top_Cluster"
+
+        self.SpineCurve_BtmClstrGRP = self.SpineCurve_BtmClstr + "_GRP"
+        self.SpineCurve_MidClstrGRP = self.name + "_Spine_Spline_Mid_Cluster_GRP"
+        self.SpineCurveTop_TopClstrGRP = self.SpineCurveTop_TopClstr + "_GRP"
+
+        # BTM
+        cmds.select(self.SpineCurve + ".cv[0:1]")
+        cmds.cluster(envelope=1)
+        cmds.rename(self.SpineCurve_BtmClstr)
+        cmds.group(self.SpineCurve_BtmClstr, n=self.SpineCurve_BtmClstrGRP)
+        cmds.xform(os=True, piv=[splineStartPos[0], splineStartPos[1], splineStartPos[2]])
+        cmds.parentConstraint(self.MainHipControl, self.SpineCurve_BtmClstrGRP, mo=True)
+
+        # Mid
+        cmds.select(self.SpineCurve + ".cv[2:3]")
+        cmds.cluster(envelope=1)
+        cmds.rename(self.SpineCurve_TopClstr)
+        cmds.select(self.SpineCurveTop + ".cv[0:1]")
+        cmds.cluster(envelope=1)
+        cmds.rename(self.SpineCurveTop_BtmClstr)
+        cmds.group(self.SpineCurve_TopClstr, self.SpineCurveTop_BtmClstr, n=self.SpineCurve_MidClstrGRP)
+        cmds.xform(os=True, piv=[SpineCenterPos[0], SpineCenterPos[1], SpineCenterPos[2]])
+        cmds.parentConstraint(self.SpineMid_IKCtr, self.SpineCurve_MidClstrGRP)
+
+        # Top
+        cmds.select(self.SpineCurveTop + ".cv[2:3]")
+        cmds.cluster(envelope=1)
+        cmds.rename(self.SpineCurveTop_TopClstr)
+        cmds.group(self.SpineCurveTop_TopClstr, n=self.SpineCurveTop_TopClstrGRP)
+        cmds.xform(os=True, piv=[splineEndPos[0], splineEndPos[1], splineEndPos[2]])
+        cmds.parentConstraint(self.SpineTop_IKCtr, self.SpineCurveTop_TopClstrGRP)
+
+        # Vis
+        cmds.setAttr(self.SpineCurve_BtmClstr + ".v", 0)
+        cmds.setAttr(self.SpineCurve_TopClstr + ".v", 0)
+        cmds.setAttr(self.SpineCurveTop_BtmClstr + ".v", 0)
+        cmds.setAttr(self.SpineCurveTop_TopClstr + ".v", 0)
+        # endregion
         pass
 
     def RibbonCluster(self, side):
