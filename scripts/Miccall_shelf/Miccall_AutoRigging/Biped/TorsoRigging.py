@@ -175,7 +175,6 @@ class TorsoRigging:
     def CreateFKControl(self):
         cmds.joint(self.FKJoints[0], e=True, oj="yxz", secondaryAxisOrient="xup", zso=True, ch=True)
         for i in range(1, self.TorseSplineCount - 1):
-            print(self.FKJoints[i])
             cmds.setAttr("%s.rotateOrder" % self.FKJoints[i], 1)
             name = "%s_Ctr" % self.FKJoints[i][0:-4]
             CT.CircleControl(name)
@@ -512,7 +511,6 @@ class TorsoRigging:
                 cmds.pathAnimation(nameGRP, self.SpineCurve, fractionMode=True, follow=False, n=mapPath)
                 cmds.cutKey(mapPath, cl=True, at="u")
                 v = float(i + 1) / ((count + 1) / 2)
-                print("BTM : v : " + str(v))
                 if v == 1:
                     v = 0.999
                 cmds.setAttr(mapPath + ".uValue", v)
@@ -520,7 +518,6 @@ class TorsoRigging:
                 cmds.pathAnimation(nameGRP, self.SpineCurveTop, fractionMode=True, follow=False, n=mapPath)
                 cmds.cutKey(mapPath, cl=True, at="u")
                 v = float(float(i + 1) - ((count + 1) / 2)) / ((count + 1) / 2)
-                print("TOP : v : " + str(v))
                 if v == 1:
                     v = 0.999
                 cmds.setAttr(mapPath + ".uValue", v)
@@ -583,6 +580,141 @@ class TorsoRigging:
         cmds.setAttr(self.SpineCurve_TopClstr + ".v", 0)
         cmds.setAttr(self.SpineCurveTop_BtmClstr + ".v", 0)
         cmds.setAttr(self.SpineCurveTop_TopClstr + ".v", 0)
+        # endregion
+
+        # region Create Spine Control
+        self.SpineCurve_Ctr = self.name + "_SpineCurve_01Ctr"
+        mel.eval("curve -d 1 -p -4 0 0 -p 4 0 0 -k 0 -k 1 -n " + self.SpineCurve_Ctr + ";")
+        cmds.pickWalk(d="down")
+        cmds.rename(self.SpineCurve_Ctr + "Shape")
+        mel.eval("circle -c 5 0 0 -nr 0 1 0 -ch 0 -n " + self.SpineCurve_Ctr + "2" + ";")
+        mel.eval("circle -c -5 0 0 -nr 0 1 0 -ch 0 -n " + self.SpineCurve_Ctr + "3" + ";")
+        cmds.parent(self.SpineCurve_Ctr + "2Shape", self.SpineCurve_Ctr + "3Shape", self.SpineCurve_Ctr, r=True, s=True)
+        cmds.delete(self.SpineCurve_Ctr + "2", self.SpineCurve_Ctr + "3")
+        cmds.setAttr(self.SpineCurve_Ctr + ".scale", 1.25, 1.25, 1.25)
+        cmds.makeIdentity(self.SpineCurve_Ctr, apply=True, s=1)
+
+        cmds.setAttr(self.SpineCurve_Ctr + "Shape.overrideEnabled", 1)
+        cmds.setAttr(self.SpineCurve_Ctr + "2Shape.overrideEnabled", 1)
+        cmds.setAttr(self.SpineCurve_Ctr + "3Shape.overrideEnabled", 1)
+        cmds.setAttr(self.SpineCurve_Ctr + "Shape.overrideColor", 27)
+        cmds.setAttr(self.SpineCurve_Ctr + "2Shape.overrideColor", 27)
+        cmds.setAttr(self.SpineCurve_Ctr + "3Shape.overrideColor", 27)
+        # endregion
+
+        # region Spine Control Joint
+        self.SpineCurve_TopIK_JNT = self.name + "_SpineCurve_TopIK_JNT"
+        self.SpineCurve_BtmIK_JNT = self.name + "_SpineCurve_BtmIK_JNT"
+        self.SpineCurve_MidIK_JNT = self.name + "_SpineCurve_MidIK_JNT"
+
+        cmds.select(cl=True)
+        cmds.joint(n=self.SpineCurve_TopIK_JNT, p=(0, 2, 0))
+        cmds.setAttr(self.SpineCurve_TopIK_JNT + ".radius", 0.5)
+        cmds.select(cl=True)
+        cmds.joint(n=self.SpineCurve_BtmIK_JNT, p=(0, -2, 0))
+        cmds.setAttr(self.SpineCurve_BtmIK_JNT + ".radius", 0.5)
+        cmds.select(cl=True)
+        cmds.joint(n=self.SpineCurve_MidIK_JNT, p=(0, 0, 0))
+        cmds.setAttr(self.SpineCurve_MidIK_JNT + ".radius", 0.5)
+        self.RibbonSKinCluster = self.name + "_Spine_RibbonSkinCluster"
+        cmds.select(self.Spine_Ribbon, self.SpineCurve_TopIK_JNT, self.SpineCurve_BtmIK_JNT, self.SpineCurve_MidIK_JNT)
+        cmds.skinCluster(n=self.RibbonSKinCluster, toSelectedBones=True, ignoreHierarchy=True, mi=3, dr=1, rui=True,
+                         bindMethod=0)
+        bindPose = cmds.listConnections(self.RibbonSKinCluster, destination=False, source=True, t="dagPose")
+        cmds.delete(bindPose)
+
+        self.Spine_Ribbon_GRP = self.name + "_Ribbon_GRP"
+        cmds.group(self.SpineCurve_TopIK_JNT, self.SpineCurve_BtmIK_JNT, self.SpineCurve_MidIK_JNT,
+                   n=self.Spine_Ribbon_GRP)
+        Spine_Length = cmds.xform(self.SpineEnd_Loc, q=True, t=True)
+        cmds.setAttr(self.Spine_Ribbon_GRP + ".scale", Spine_Length[1] / 4, Spine_Length[1] / 4, Spine_Length[1] / 4)
+        cmds.delete(self.SpineEnd_Loc)
+        # CONNECT TO RIG
+        cmds.pointConstraint(self.SpineTop_IKCtr, self.SpineCurve_TopIK_JNT)
+        cmds.orientConstraint(self.SpineTop_IKCtr, self.SpineTop_FKCtr, self.SpineCurve_TopIK_JNT)
+        cmds.parentConstraint(self.SpineMid_IKCtr, self.SpineCurve_MidIK_JNT)
+        cmds.pointConstraint(self.MainHipControl, self.SpineCurve_BtmIK_JNT)
+        cmds.orientConstraint(self.MainHipControl, self.RootControl, self.SpineCurve_BtmIK_JNT)
+        # endregion
+
+        # region Curve for spine length
+        SpineRoot_Pos = cmds.xform(self.RootControl, q=True, ws=True, t=True)
+        SpineMid_IKJ_Pos = cmds.xform(self.SpineCurve_MidIK_JNT, q=True, ws=True, t=True)
+        SpineTop_Pos = cmds.xform(self.SpineCurve_TopIK_JNT, q=True, ws=True, t=True)
+        self.SpineCurveLengthCX = self.name + "_SpineCurve_LengthCX"
+        mel.eval(
+            "curve -n " + self.SpineCurveLengthCX + " -d 3 -p " + str(SpineRoot_Pos[0]) + " " + str(
+                SpineRoot_Pos[1]) + " " +
+            str(SpineRoot_Pos[2]) + " " +
+            "-p " + str((SpineMid_IKJ_Pos[0] - SpineRoot_Pos[0]) / 3.4 + SpineRoot_Pos[0]) + " " +
+            str((SpineMid_IKJ_Pos[1] - SpineRoot_Pos[1]) / 3.4 + SpineRoot_Pos[1]) + " " +
+            str((SpineMid_IKJ_Pos[2] - SpineRoot_Pos[2]) / 3.4 + SpineRoot_Pos[2]) + " " +
+
+            "-p " + str((SpineMid_IKJ_Pos[0] - SpineRoot_Pos[0]) / 1.35 + SpineRoot_Pos[0]) + " " +
+            str((SpineMid_IKJ_Pos[1] - SpineRoot_Pos[1]) / 1.35 + SpineRoot_Pos[1]) + " " +
+            str((SpineMid_IKJ_Pos[2] - SpineRoot_Pos[2]) / 1.35 + SpineRoot_Pos[2]) + " " +
+
+            "-p " + str((SpineTop_Pos[0] - SpineMid_IKJ_Pos[0]) / 3.7 + SpineMid_IKJ_Pos[0]) + " " +
+            str((SpineTop_Pos[1] - SpineMid_IKJ_Pos[1]) / 3.7 + SpineMid_IKJ_Pos[1]) + " " +
+            str((SpineTop_Pos[2] - SpineMid_IKJ_Pos[2]) / 3.7 + SpineMid_IKJ_Pos[2]) + " " +
+
+            "-p " + str((SpineTop_Pos[0] - SpineMid_IKJ_Pos[0]) / 1.4 + SpineMid_IKJ_Pos[0]) + " " +
+            str((SpineTop_Pos[1] - SpineMid_IKJ_Pos[1]) / 1.4 + SpineMid_IKJ_Pos[1]) + " " +
+            str((SpineTop_Pos[2] - SpineMid_IKJ_Pos[2]) / 1.4 + SpineMid_IKJ_Pos[2]) + " " +
+
+            "-p " + str(SpineTop_Pos[0]) + " " + str(SpineTop_Pos[1]) + " " + str(SpineTop_Pos[2]) + " " +
+            "-k 0 -k 0 -k 0 -k 1 -k 2 -k 3 -k 3 -k 3;")
+        cmds.pickWalk(d="down")
+        cmds.rename(self.SpineCurveLengthCX + "Shape")
+        cmds.select(self.SpineCurveLengthCX)
+        cmds.arclen(ch=1)
+        curveInfoNode = cmds.listConnections(self.SpineCurveLengthCX + "Shape", t="curveInfo", d=1, s=0)
+        self.SpineCurve_LengthInfo = self.name + "_SpineCurve_LengthInfo"
+        cmds.rename(curveInfoNode[0], self.SpineCurve_LengthInfo)
+
+        self.SpineCurveLengthCX_Cluster01 = self.SpineCurveLengthCX + "_Cluster01"
+        self.SpineCurveLengthCX_Cluster02 = self.SpineCurveLengthCX + "_Cluster02"
+        self.SpineCurveLengthCX_Cluster03 = self.SpineCurveLengthCX + "_Cluster03"
+        self.SpineCurveLengthCX_Cluster01_GRP = self.SpineCurveLengthCX_Cluster01 + "_GRP"
+        self.SpineCurveLengthCX_Cluster02_GRP = self.SpineCurveLengthCX_Cluster02 + "_GRP"
+        self.SpineCurveLengthCX_Cluster03_GRP = self.SpineCurveLengthCX_Cluster03 + "_GRP"
+        cmds.select(self.SpineCurveLengthCX + ".cv[0:1]")
+        cmds.cluster(envelope=1)
+        cmds.rename(self.SpineCurveLengthCX_Cluster01)
+        cmds.select(self.SpineCurveLengthCX + ".cv[2:3]")
+        cmds.cluster(envelope=1)
+        cmds.rename(self.SpineCurveLengthCX_Cluster02)
+        cmds.select(self.SpineCurveLengthCX + ".cv[4:5]")
+        cmds.cluster(envelope=1)
+        cmds.rename(self.SpineCurveLengthCX_Cluster03)
+
+        cmds.connectAttr(self.MainHipControl + ".matrix", self.SpineCurveLengthCX_Cluster01 + "Shape.weightedNode")
+        cmds.setAttr(self.SpineCurveLengthCX_Cluster01 + "Cluster.relative", 0)
+        cmds.group(em=True, n=self.SpineCurveLengthCX_Cluster01_GRP)
+        Pcon = cmds.parentConstraint(self.MainHipControl, self.SpineCurveLengthCX_Cluster01_GRP)
+        cmds.delete(Pcon)
+        cmds.parent(self.SpineCurveLengthCX_Cluster01, self.SpineCurveLengthCX_Cluster01_GRP)
+        cmds.parent(self.SpineCurveLengthCX_Cluster01_GRP, self.MainHipControl)
+        cmds.setAttr(self.SpineCurveLengthCX_Cluster01 + ".v", 0)
+
+        cmds.connectAttr(self.SpineMid_IKCtr + ".matrix", self.SpineCurveLengthCX_Cluster02 + "Shape.weightedNode")
+        cmds.setAttr(self.SpineCurveLengthCX_Cluster02 + "Cluster.relative", 0)
+        cmds.group(em=True, n=self.SpineCurveLengthCX_Cluster02_GRP)
+        Pcon = cmds.parentConstraint(self.SpineMid_IKCtr, self.SpineCurveLengthCX_Cluster02_GRP)
+        cmds.delete(Pcon)
+        cmds.parent(self.SpineCurveLengthCX_Cluster02, self.SpineCurveLengthCX_Cluster02_GRP)
+        cmds.parent(self.SpineCurveLengthCX_Cluster02_GRP, self.SpineMid_IKCtr)
+        cmds.setAttr(self.SpineCurveLengthCX_Cluster02 + ".v", 0)
+
+        cmds.connectAttr(self.SpineTop_FKCtr + ".matrix", self.SpineCurveLengthCX_Cluster03 + "Shape.weightedNode")
+        cmds.setAttr(self.SpineCurveLengthCX_Cluster03 + "Cluster.relative", 0)
+        cmds.group(em=True, n=self.SpineCurveLengthCX_Cluster03_GRP)
+        Pcon = cmds.parentConstraint(self.SpineTop_FKCtr, self.SpineCurveLengthCX_Cluster03_GRP)
+        cmds.delete(Pcon)
+        cmds.parent(self.SpineCurveLengthCX_Cluster03, self.SpineCurveLengthCX_Cluster03_GRP)
+        cmds.parent(self.SpineCurveLengthCX_Cluster02_GRP, self.SpineTop_FKCtr)
+        cmds.setAttr(self.SpineCurveLengthCX_Cluster03 + ".v", 0)
+
         # endregion
         pass
 
