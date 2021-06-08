@@ -711,9 +711,165 @@ class TorsoRigging:
         cmds.group(em=True, n=self.SpineCurveLengthCX_Cluster03_GRP)
         Pcon = cmds.parentConstraint(self.SpineTop_FKCtr, self.SpineCurveLengthCX_Cluster03_GRP)
         cmds.delete(Pcon)
+
         cmds.parent(self.SpineCurveLengthCX_Cluster03, self.SpineCurveLengthCX_Cluster03_GRP)
-        cmds.parent(self.SpineCurveLengthCX_Cluster02_GRP, self.SpineTop_FKCtr)
+        cmds.parent(self.SpineCurveLengthCX_Cluster03_GRP, self.SpineTop_IKCtr)
         cmds.setAttr(self.SpineCurveLengthCX_Cluster03 + ".v", 0)
+
+        self.Spine_BtmTX_Loc = self.name + "_Spine_BtmTX_loc"
+        cmds.spaceLocator(n=self.Spine_BtmTX_Loc, p=(0, 0, 0))
+        cmds.parent(self.Spine_BtmTX_Loc, self.MainControl)
+        cmds.pointConstraint(self.SpineMid_IKCtr, self.Spine_BtmTX_Loc)
+        self.Spine_TopTX_Loc = self.name + "_Spine_TopTX_loc"
+        cmds.spaceLocator(n=self.Spine_TopTX_Loc, p=(0, 0, 0))
+        cmds.parent(self.Spine_TopTX_Loc, self.SpineTop_IKCtr)
+        cmds.pointConstraint(self.SpineMid_IKCtr, self.Spine_TopTX_Loc)
+
+        # SET DRIVEN KEY
+        cmds.setDrivenKeyframe(self.Spine_RibbonClusterGRPs[0] + ".scaleY",
+                               currentDriver=self.SpineMid_IKCtr + ".translateX")
+        cmds.setDrivenKeyframe(self.Spine_RibbonClusterGRPs[1] + ".scaleY",
+                               currentDriver=self.SpineMid_IKCtr + ".translateX")
+
+        cmds.setAttr(self.SpineMid_IKCtr + ".translateX", -4)
+        cmds.setAttr(self.Spine_RibbonClusterGRPs[0] + ".scaleY", 0.8)
+        cmds.setAttr(self.Spine_RibbonClusterGRPs[1] + ".scaleY", 1.2)
+
+        cmds.setDrivenKeyframe(self.Spine_RibbonClusterGRPs[0] + ".scaleY",
+                               currentDriver=self.SpineMid_IKCtr + ".translateX")
+        cmds.setDrivenKeyframe(self.Spine_RibbonClusterGRPs[1] + ".scaleY",
+                               currentDriver=self.SpineMid_IKCtr + ".translateX")
+
+        cmds.setAttr(self.SpineMid_IKCtr + ".translateX", 4)
+        cmds.setAttr(self.Spine_RibbonClusterGRPs[0] + ".scaleY", 1.2)
+        cmds.setAttr(self.Spine_RibbonClusterGRPs[1] + ".scaleY", 0.8)
+
+        cmds.setDrivenKeyframe(self.Spine_RibbonClusterGRPs[0] + ".scaleY",
+                               currentDriver=self.SpineMid_IKCtr + ".translateX")
+        cmds.setDrivenKeyframe(self.Spine_RibbonClusterGRPs[1] + ".scaleY",
+                               currentDriver=self.SpineMid_IKCtr + ".translateX")
+
+        cmds.setAttr(self.SpineMid_IKCtr + ".translateX", 0)
+        cmds.setAttr(self.Spine_RibbonClusterGRPs[0] + ".scaleY", 1)
+        cmds.setAttr(self.Spine_RibbonClusterGRPs[1] + ".scaleY", 1)
+
+        cmds.selectKey(self.Spine_RibbonClusterGRPs[0] + "_scaleY", self.Spine_RibbonClusterGRPs[1] + "_scaleY", k=True)
+        cmds.keyTangent(itt="spline", ott="spline")
+
+        self.SpineMid_IKCtr_Btm_Loc = self.name + "_SpineMid_IKCtr_BtmLoc"
+        self.SpineMid_IKCtr_Top_Loc = self.name + "_SpineMid_IKCtr_TopLoc"
+        self.SpineMid_IKCtr_Btm_Loc_GRP = self.SpineMid_IKCtr_Btm_Loc + "_GRP"
+        self.SpineMid_IKCtr_Top_Loc_GRP = self.SpineMid_IKCtr_Top_Loc + "_GRP"
+        cmds.spaceLocator(n=self.SpineMid_IKCtr_Btm_Loc)
+        cmds.group(self.SpineMid_IKCtr_Btm_Loc, n=self.SpineMid_IKCtr_Btm_Loc_GRP)
+        cmds.spaceLocator(n=self.SpineMid_IKCtr_Top_Loc)
+        cmds.group(self.SpineMid_IKCtr_Top_Loc, n=self.SpineMid_IKCtr_Top_Loc_GRP)
+        Ocon = cmds.orientConstraint(self.SpineMid_IKCtr_GRPs[0], self.SpineMid_IKCtr_Btm_Loc_GRP)
+        cmds.delete(Ocon)
+        Ocon = cmds.orientConstraint(self.SpineMid_IKCtr_GRPs[0], self.SpineMid_IKCtr_Top_Loc_GRP)
+        cmds.delete(Ocon)
+        cmds.parent(self.SpineMid_IKCtr_Btm_Loc_GRP, self.MainHipControlGRP)
+        cmds.parent(self.SpineMid_IKCtr_Top_Loc_GRP, self.SpineTop_IKCtr_GRPs[0])
+        Pcon = cmds.pointConstraint(self.MainHipControl, self.SpineMid_IKCtr_Btm_Loc_GRP)
+        cmds.delete(Pcon)
+        Pcon = cmds.pointConstraint(self.SpineTop_IKCtr, self.SpineMid_IKCtr_Top_Loc_GRP)
+        cmds.delete(Pcon)
+        cmds.makeIdentity(self.SpineMid_IKCtr_Btm_Loc_GRP, self.SpineMid_IKCtr_Top_Loc_GRP, apply=True, t=1)
+        cmds.pointConstraint(self.MainHipControl, self.SpineMid_IKCtr_Btm_Loc)
+        cmds.pointConstraint(self.SpineTop_IKCtr, self.SpineMid_IKCtr_Top_Loc)
+        cmds.setAttr(self.SpineMid_IKCtr_Btm_Loc_GRP + ".v", 0)
+        cmds.setAttr(self.SpineMid_IKCtr_Top_Loc_GRP + ".v", 0)
+        # endregion
+
+        # region CONNECT
+        self.SpineMidTranslate_BlendNode = self.name + "_SpineMidTranslate_BlendNode"
+        cmds.shadingNode("blendColors", n=self.SpineMidTranslate_BlendNode, asUtility=True)
+        cmds.connectAttr(self.SpineMid_IKCtr_Top_Loc + ".translate", self.SpineMidTranslate_BlendNode + ".color1")
+        cmds.connectAttr(self.SpineMid_IKCtr_Btm_Loc + ".translate", self.SpineMidTranslate_BlendNode + ".color2")
+        cmds.connectAttr(self.SpineMidTranslate_BlendNode + ".output", self.SpineMid_IKCtr_GRPs[1] + ".translate")
+
+        self.SpineMidAimLoc = self.name + "_Spine_MidAimLoc"
+        self.SpineMidTargetLoc = self.name + "_Spine_MidTargetLoc"
+        self.SpineMidTargetLoc_GRP = self.SpineMidTargetLoc + "_GRP"
+        cmds.spaceLocator(n=self.SpineMidAimLoc)
+        cmds.spaceLocator(n=self.SpineMidTargetLoc)
+        cmds.group(self.SpineMidTargetLoc, n=self.SpineMidTargetLoc_GRP)
+        cmds.xform(os=True, piv=(0, 0, 0))
+        Pcon = cmds.parentConstraint(self.SpineTop_IKCtr, self.SpineMidTargetLoc_GRP)
+        cmds.delete(Pcon)
+        cmds.parent(self.SpineMidAimLoc, self.SpineMidTargetLoc_GRP, self.RootControl)
+        Pcon = cmds.pointConstraint(self.MainHipControl, self.SpineMidAimLoc)
+        cmds.delete(Pcon)
+        Pcon = cmds.pointConstraint(self.SpineTop_IKCtr, self.SpineMidTargetLoc)
+        cmds.delete(Pcon)
+        cmds.makeIdentity(self.SpineMidAimLoc, self.SpineMidTargetLoc, apply=True, t=1, r=1, s=1)
+        cmds.setAttr(self.SpineMidAimLoc + ".v", 0)
+        cmds.setAttr(self.SpineMidTargetLoc + ".v", 0)
+
+        cmds.connectAttr(self.MainHipControl + ".translate", self.SpineMidAimLoc + ".translate", f=True)
+        cmds.connectAttr(self.SpineTop_IKCtr + ".translate", self.SpineMidTargetLoc + ".translate", f=True)
+        cmds.aimConstraint(self.SpineMidTargetLoc, self.SpineMidAimLoc, mo=True, weight=1, aimVector=[0, 1, 0],
+                           upVector=[0, 1, 0], worldUpType="none", skip="y")
+        cmds.connectAttr(self.SpineMidAimLoc + ".rotateX", self.SpineMid_IKCtr_GRPs[1] + ".rotateX")
+        cmds.connectAttr(self.SpineMidAimLoc + ".rotateZ", self.SpineMid_IKCtr_GRPs[1] + ".rotateZ")
+
+        self.SpineMid_IKCtr_GRP_BlendNode = self.name + "_SpineMid_IKCtr_GRP_BlendNode"
+        cmds.shadingNode("blendColors", n=self.SpineMid_IKCtr_GRP_BlendNode, asUtility=True)
+        cmds.connectAttr(self.SpineTop_IKCtr + ".rotate", self.SpineMid_IKCtr_GRP_BlendNode + ".color1", f=True)
+        cmds.connectAttr(self.MainHipControl + ".rotate", self.SpineMid_IKCtr_GRP_BlendNode + ".color1", f=True)
+        cmds.connectAttr(self.SpineMid_IKCtr_GRP_BlendNode + ".outputG", self.SpineMid_IKCtr_GRPs[1] + ".rotateY",
+                         f=True)
+
+        cmds.addAttr(self.SpineMid_IKCtr, ln="SpineLenght", at="double")
+        cmds.setAttr(self.SpineMid_IKCtr + ".SpineLenght", e=True, channelBox=True)
+        cmds.addAttr(self.MainHipControl, ln="SpineLenght", at="double")
+        cmds.setAttr(self.MainHipControl + ".SpineLenght", e=True, channelBox=True)
+        cmds.addAttr(self.SpineTop_IKCtr, ln="SpineLenght", at="double")
+        cmds.setAttr(self.SpineTop_IKCtr + ".SpineLenght", e=True, channelBox=True)
+
+        self.SpineLength_MDNode = self.name + "_SpineLength_MDNode"
+        cmds.shadingNode("multiplyDivide", n=self.SpineLength_MDNode, asUtility=True)
+        cmds.setAttr(self.SpineLength_MDNode + ".operation", 2)
+        Spine_Length[0] = cmds.getAttr(self.SpineCurve_LengthInfo + ".arcLength")
+        cmds.setAttr(self.SpineLength_MDNode + ".input2X", Spine_Length[0])
+        cmds.connectAttr(self.SpineCurve_LengthInfo + ".arcLength", self.SpineLength_MDNode + ".input1X", f=True)
+
+        self.SpineLengthCXomp_MDNode = self.name + "_SpineLengthCXomp_MDNode"
+        cmds.shadingNode("multiplyDivide", n=self.SpineLengthCXomp_MDNode, asUtility=True)
+        cmds.setAttr(self.SpineLengthCXomp_MDNode + ".operation", 2)
+        cmds.connectAttr(self.SpineLength_MDNode + ".outputX", self.SpineLengthCXomp_MDNode + ".input1X", f=True)
+        cmds.connectAttr(self.MainControl + ".scaleY", self.SpineLengthCXomp_MDNode + ".input2X")
+
+        cmds.connectAttr(self.SpineLengthCXomp_MDNode + ".outputX", self.SpineMid_IKCtr + ".SpineLenght", f=True)
+        cmds.connectAttr(self.SpineLengthCXomp_MDNode + ".outputX", self.MainHipControl + ".SpineLenght", f=True)
+        cmds.connectAttr(self.SpineLengthCXomp_MDNode + ".outputX", self.SpineTop_IKCtr + ".SpineLenght", f=True)
+
+        self.ExtraNodes = self.name + "_ExtraNodes"
+        if cmds.objExists(self.ExtraNodes) is not None:
+            cmds.group(em=True, n=self.ExtraNodes)
+            cmds.xform(os=True, piv=[0, 0, 0])
+            cmds.setAttr(self.ExtraNodes + ".inheritsTransform", 0)
+
+        cmds.parent(self.SpineCurveLengthCX, self.Spine_Ribbon, self.Spine_RibbonBlend, self.Spine_RibbonClusters,
+                    self.SpineCurveLocList, self.ExtraNodes)
+
+        cmds.setAttr(self.Spine_Ribbon + ".v", 0)
+        cmds.setAttr(self.Spine_RibbonBlend + ".v", 0)
+        cmds.setAttr(self.Spine_RibbonClusters[0] + ".v", 0)
+        cmds.setAttr(self.Spine_RibbonClusters[1] + ".v", 0)
+        cmds.setAttr(self.Spine_BtmTX_Loc + ".v", 0)
+        cmds.setAttr(self.Spine_TopTX_Loc + ".v", 0)
+        cmds.setAttr(self.SpineCurve_BtmIK_JNT + ".v", 0)
+        cmds.setAttr(self.SpineCurve_MidIK_JNT + ".v", 0)
+        cmds.setAttr(self.SpineCurveLengthCX + ".template", 0)
+        cmds.setAttr(self.SpineCurve + ".v", 0)
+        cmds.setAttr(self.SpineCurveTop + ".v", 0)
+
+        self.SpineCurve_Ctr_GRP = self.SpineCurve_Ctr + "_GRP"
+        cmds.group(self.SpineCurve_Ctr, n=self.SpineCurve_Ctr_GRP)
+        print(self.ProxyData.Proxies_SpineList[0])
+        Pcon = cmds.pointConstraint(self.ProxyData.Proxies_SpineList[0],self.SpineCurve_Ctr_GRP)
+        cmds.delete(Pcon)
 
         # endregion
         pass
