@@ -38,7 +38,7 @@ dialog = None
 class AutoRigging_GUI(MayaQWidgetDockableMixin, qw.QDialog):
     def __init__(self, *args, **kwargs):
         if mayaveersion == 2022:
-            super().__init__(*args, **kwargs)
+            super(AutoRigging_GUI, self).__init__(*args, **kwargs)
         else:
             super(AutoRigging_GUI, self).__init__(*args, **kwargs)
         self.setSizePolicy(qw.QSizePolicy.Preferred, qw.QSizePolicy.Preferred)

@@ -4,6 +4,7 @@ print("Miccall Tool Load ")
 import os
 import maya.cmds as cmds
 import maya.utils
+
 mayaveersion = cmds.about(version=True)
 
 if mayaveersion == "2022":
@@ -11,11 +12,13 @@ if mayaveersion == "2022":
     from .shelfBase import shelfBase
 else:
     import shelfBase
+
     reload(shelfBase)
 
 
 def shelf_show():
     Miccall_Tools()
+
 
 if mayaveersion == "2022":
     class Miccall_Tools(shelfBase):
@@ -58,8 +61,23 @@ if mayaveersion == "2022":
             AutoRiggingTools.create()
 
         @staticmethod
+        def AnimTool(*args):
+            from Miccall_AnimTool import AnimTools
+            AnimTools.delete()
+            reload(AnimTools)
+            AnimTools.create()
+
+        @staticmethod
         def Test(*args):
             print("...Test")
+
+        @staticmethod
+        def MetaHuman(*args):
+            from .MetaHumanTool import MetaRetarget
+            MetaRetarget.delete()
+            importlib.reload(MetaRetarget)
+            print("...MetaHuman")
+            MetaRetarget.create()
 
         def build(self):
             # Shelf Common Part
@@ -78,6 +96,21 @@ if mayaveersion == "2022":
                 command=self.AutoRigging,
                 doubleCommand=None,
                 annotation_str=u'AutoRigging')
+
+            self.addButon(
+                "",
+                "AutoRigging.png",
+                command=self.AnimTool,
+                doubleCommand=None,
+                annotation_str=u'Anim')
+
+            self.addButon(
+                "",
+                "AutoRigging.png",
+                command=self.MetaHuman,
+                doubleCommand=None,
+                annotation_str=u'MetaHuman')
+
 else:
     class Miccall_Tools(shelfBase.shelfBase):
         def __init__(self):
@@ -103,8 +136,23 @@ else:
             AutoRiggingTools.create()
 
         @staticmethod
+        def AnimTool(*args):
+            from Miccall_AnimTool import AnimTools
+            AnimTools.delete()
+            reload(AnimTools)
+            AnimTools.create()
+
+        @staticmethod
         def Test(*args):
             print("...Test")
+
+        @staticmethod
+        def MetaHuman(*args):
+            from MetaHumanTool import MetaRetarget
+            MetaRetarget.delete()
+            reload(MetaRetarget)
+            print("...MetaHuman")
+            MetaRetarget.create()
 
         def build(self):
             # Shelf Common Part
@@ -123,3 +171,17 @@ else:
                 command=self.AutoRigging,
                 doubleCommand=None,
                 annotation_str=u'AutoRigging')
+
+            self.addButon(
+                "",
+                "AutoRigging.png",
+                command=self.AnimTool,
+                doubleCommand=None,
+                annotation_str=u'Anim')
+
+            self.addButon(
+                "",
+                "AutoRigging.png",
+                command=self.MetaHuman,
+                doubleCommand=None,
+                annotation_str=u'MetaHuman')
